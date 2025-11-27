@@ -21,6 +21,9 @@ scikit-image>=0.21.0
 matplotlib>=3.7.0
 pandas>=2.0.0
 
+# Experiment tracking
+wandb>=0.16.0
+
 # CLI and utilities
 argparse
 pathlib

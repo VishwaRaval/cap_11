@@ -1,16 +1,20 @@
 #!/usr/bin/env python3
 """
-YOLOv11 Training Script for Underwater Fish Detection
+YOLOv11 Training Script for Underwater Fish Detection with W&B Integration
 
 Supports:
 - Multiple model sizes (nano, small)
 - COCO pretrained or custom checkpoint initialization
 - Detailed per-epoch metrics logging
+- Weights & Biases experiment tracking
 - Edge deployment focused on YOLOv11n
 
 Usage:
-    # Train YOLOv11n from COCO weights
+    # Train YOLOv11n from COCO weights with W&B
     python train_yolo11_fish.py --data dataset_root_preprocessed --model n --epochs 100 --batch 16
+
+    # Train without W&B
+    python train_yolo11_fish.py --data dataset_root --model n --epochs 100 --batch 16 --no-wandb
 
     # Train from custom checkpoint
     python train_yolo11_fish.py --data dataset_root --model n --epochs 100 --batch 16 --weights custom_checkpoint.pt
@@ -24,7 +28,160 @@ import yaml
 from pathlib import Path
 import pandas as pd
 import shutil
+import os
 from ultralytics import YOLO
+
+# W&B integration
+try:
+    import wandb
+    WANDB_AVAILABLE = True
+except ImportError:
+    WANDB_AVAILABLE = False
+    print("⚠ Warning: wandb not installed. Install with: pip install wandb")
+
+
+def setup_wandb(args, train_config):
+    """
+    Initialize Weights & Biases tracking.
+    
+    Args:
+        args: Command line arguments
+        train_config: Training configuration dictionary
+    
+    Returns:
+        wandb run object or None if disabled
+    """
+    if not WANDB_AVAILABLE or args.no_wandb:
+        return None
+    
+    # Login to wandb (will use environment variable or cached login)
+    if args.wandb_key:
+        wandb.login(key=args.wandb_key)
+    else:
+        # Try to login with cached credentials or environment variable
+        try:
+            wandb.login()
+        except Exception as e:
+            print(f"⚠ Warning: W&B login failed: {e}")
+            print("  Set WANDB_API_KEY environment variable or use --wandb-key")
+            return None
+    
+    # Experiment name
+    exp_name = f"fish_{args.model}_{args.name}" if args.name else f"fish_{args.model}"
+    
+    # Initialize wandb
+    run = wandb.init(
+        project=args.wandb_project,
+        name=exp_name,
+        config={
+            "model_size": args.model,
+            "epochs": args.epochs,
+            "batch_size": args.batch,
+            "image_size": args.imgsz,
+            "dataset": str(args.data),
+            "optimizer": train_config.get('optimizer', 'auto'),
+            "device": args.device,
+            "architecture": f"YOLOv11{args.model}",
+            "task": "underwater_fish_detection",
+            "target_deployment": "edge_device",
+            "size_constraint_mb": 70,
+        },
+        tags=["yolov11", "underwater", "fish-detection", "edge-deployment", args.model],
+        notes=args.wandb_notes,
+    )
+    
+    print(f"✓ W&B initialized: {run.name}")
+    print(f"  Project: {args.wandb_project}")
+    print(f"  URL: {run.url}")
+    
+    return run
+
+
+def log_to_wandb(results_dir, wandb_run):
+    """
+    Log training results to Weights & Biases.
+    
+    Args:
+        results_dir: Path to results directory
+        wandb_run: Active wandb run object
+    """
+    if wandb_run is None:
+        return
+    
+    # Log results CSV
+    results_csv = results_dir / 'results.csv'
+    if results_csv.exists():
+        df = pd.read_csv(results_csv)
+        df.columns = df.columns.str.strip()
+        
+        # Log each epoch
+        for idx, row in df.iterrows():
+            metrics = {}
+            
+            # Training losses
+            if 'train/box_loss' in row:
+                metrics['train/box_loss'] = row['train/box_loss']
+            if 'train/cls_loss' in row:
+                metrics['train/cls_loss'] = row['train/cls_loss']
+            if 'train/dfl_loss' in row:
+                metrics['train/dfl_loss'] = row['train/dfl_loss']
+            
+            # Validation losses
+            if 'val/box_loss' in row:
+                metrics['val/box_loss'] = row['val/box_loss']
+            if 'val/cls_loss' in row:
+                metrics['val/cls_loss'] = row['val/cls_loss']
+            if 'val/dfl_loss' in row:
+                metrics['val/dfl_loss'] = row['val/dfl_loss']
+            
+            # Performance metrics
+            if 'metrics/precision(B)' in row:
+                metrics['precision'] = row['metrics/precision(B)']
+            if 'metrics/recall(B)' in row:
+                metrics['recall'] = row['metrics/recall(B)']
+            if 'metrics/mAP50(B)' in row:
+                metrics['mAP50'] = row['metrics/mAP50(B)']
+            if 'metrics/mAP50-95(B)' in row:
+                metrics['mAP50-95'] = row['metrics/mAP50-95(B)']
+            
+            # Log to wandb
+            wandb_run.log(metrics, step=int(row.get('epoch', idx)))
+    
+    # Log training curves as images
+    for plot_file in results_dir.glob('*.png'):
+        try:
+            wandb_run.log({f"plots/{plot_file.stem}": wandb.Image(str(plot_file))})
+        except Exception as e:
+            print(f"⚠ Warning: Could not log {plot_file.name} to W&B: {e}")
+    
+    # Log best model weights as artifact
+    best_weights = results_dir / 'weights' / 'best.pt'
+    if best_weights.exists():
+        try:
+            artifact = wandb.Artifact(
+                name=f"model-{wandb_run.name}",
+                type="model",
+                description=f"Best YOLOv11{args.model} weights for underwater fish detection"
+            )
+            artifact.add_file(str(best_weights))
+            wandb_run.log_artifact(artifact)
+            print(f"✓ Logged best weights to W&B as artifact")
+        except Exception as e:
+            print(f"⚠ Warning: Could not log weights to W&B: {e}")
+    
+    # Log final metrics summary
+    summary_csv = results_dir / 'metrics_summary.csv'
+    if summary_csv.exists():
+        try:
+            summary_df = pd.read_csv(summary_csv)
+            if len(summary_df) > 0:
+                final_metrics = summary_df.iloc[-1].to_dict()
+                wandb_run.summary.update({
+                    f"final_{k}": v for k, v in final_metrics.items() 
+                    if k != 'epoch' and pd.notna(v)
+                })
+        except Exception as e:
+            print(f"⚠ Warning: Could not log summary to W&B: {e}")
 
 
 def update_data_yaml(dataset_root):
@@ -148,6 +305,9 @@ def train_yolo(args):
     else:
         print("⚠ Warning: hyp_fish.yaml not found, using default hyperparameters")
     
+    # Initialize W&B
+    wandb_run = setup_wandb(args, train_config)
+    
     # Print training configuration
     print("\n" + "=" * 70)
     print("TRAINING CONFIGURATION")
@@ -170,6 +330,13 @@ def train_yolo(args):
     
     # Post-process metrics
     post_process_metrics(results_dir)
+    
+    # Log to W&B
+    if wandb_run is not None:
+        print("\n📊 Logging results to Weights & Biases...")
+        log_to_wandb(results_dir, wandb_run)
+        wandb_run.finish()
+        print("✓ W&B logging complete")
     
     print(f"\n📊 Results saved to: {results_dir}")
     print(f"📁 Best weights: {results_dir / 'weights' / 'best.pt'}")
@@ -243,7 +410,7 @@ def post_process_metrics(results_dir):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Train YOLOv11 for underwater fish detection"
+        description="Train YOLOv11 for underwater fish detection with W&B tracking"
     )
     
     # Dataset arguments
@@ -273,6 +440,16 @@ def main():
                        help='Project directory (default: runs/detect)')
     parser.add_argument('--name', type=str, default=None,
                        help='Experiment name suffix (default: fish_{model})')
+    
+    # W&B arguments
+    parser.add_argument('--no-wandb', action='store_true',
+                       help='Disable Weights & Biases logging')
+    parser.add_argument('--wandb-project', type=str, default='underwater-fish-detection',
+                       help='W&B project name (default: underwater-fish-detection)')
+    parser.add_argument('--wandb-key', type=str, default=None,
+                       help='W&B API key (or set WANDB_API_KEY environment variable)')
+    parser.add_argument('--wandb-notes', type=str, default=None,
+                       help='Notes for this W&B run')
     
     args = parser.parse_args()
     
