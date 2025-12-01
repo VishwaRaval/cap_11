@@ -108,7 +108,7 @@ def create_balanced_hyperparameters(base_hyp_path, class_weights, output_path):
     
     # Optionally add focal loss parameters if supported
     # Note: YOLOv11 may not directly support this in YAML, but we note it
-    hyp['fl_gamma'] = 2.0  # Focal loss gamma (focus on hard examples)
+    # hyp['fl_gamma'] = 2.0  # Focal loss gamma (focus on hard examples)
     
     # Note: Ultralytics doesn't directly support per-class weights in YAML
     # We'll need to handle this differently (see training code)
