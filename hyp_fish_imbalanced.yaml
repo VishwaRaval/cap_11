@@ -17,9 +17,6 @@ cls: 1.2                 # Classification loss gain (INCREASED to 1.2 for severe
                          # Higher cls loss forces model to learn minority classes
 dfl: 1.5                 # Distribution Focal Loss gain
 
-# Focal Loss parameters (helps with hard examples and class imbalance)
-fl_gamma: 2.0            # Focal loss gamma - focus on hard-to-classify examples
-                         # Higher gamma = more focus on misclassified examples
 
 # Augmentation settings - ENHANCED for minority class
 # More aggressive augmentation helps minority class (Parrot Fish) generalization
@@ -45,9 +42,6 @@ copy_paste: 0.1          # ENABLED copy-paste (helps duplicate minority class sa
 
 # NMS settings
 iou: 0.45                # LOWERED from 0.5 - more aggressive NMS for cleaner predictions
-
-# Label smoothing - helps with overconfident predictions on majority class
-label_smoothing: 0.05    # Slight label smoothing
 
 # Training stability
 close_mosaic: 15         # Disable mosaic later (15 epochs before end)
