@@ -1,0 +1,51 @@
+# YOLOv11 Hyperparameters for 3-Class Underwater Fish Detection
+# Optimized for: Grunt Fish, Parrot Fish, Surgeon Fish
+# Edge deployment target: < 70 MB
+
+# Learning rate and optimizer settings
+lr0: 0.01                # Initial learning rate
+lrf: 0.01                # Final learning rate (lr0 * lrf)
+momentum: 0.937          # SGD momentum/Adam beta1
+weight_decay: 0.0005     # Optimizer weight decay
+warmup_epochs: 3.0       # Warmup epochs (important for multi-class)
+warmup_momentum: 0.8     # Warmup initial momentum
+warmup_bias_lr: 0.1      # Warmup initial bias lr
+
+# Loss weights - OPTIMIZED FOR 3-CLASS DETECTION
+box: 7.5                 # Box loss gain
+cls: 0.7                 # Classification loss gain (INCREASED from 0.5 for better class separation)
+dfl: 1.5                 # Distribution Focal Loss gain
+
+# Augmentation settings - CONSERVATIVE for underwater, REALISTIC for fish
+# Dataset already preprocessed by Roboflow: 768x432, auto-contrast, brightness jitter
+
+# Geometric augmentations (CONSERVATIVE - preserve underwater orientation)
+degrees: 3.0             # Image rotation (+/- deg) - REDUCED from 5.0 for realism
+translate: 0.1           # Image translation (+/- fraction)
+scale: 0.4               # Image scale (+/- gain) - moderate for size variation
+shear: 2.0               # Image shear (+/- deg)
+perspective: 0.0         # Image perspective - disabled
+flipud: 0.0              # CRITICAL: NO vertical flip (fish don't swim upside down!)
+fliplr: 0.5              # Horizontal flip (fish can swim either direction)
+
+# Photometric augmentations (MODERATE for color/lighting variation)
+hsv_h: 0.015             # HSV-Hue augmentation - slightly higher for species variation
+hsv_s: 0.5               # HSV-Saturation augmentation - underwater color shifts
+hsv_v: 0.3               # HSV-Value augmentation - lighting variation
+
+# Multi-class specific augmentations
+mosaic: 1.0              # Mosaic augmentation (helps learn multiple scales)
+mixup: 0.05              # Mixup augmentation (small amount helps multi-class learning)
+copy_paste: 0.0          # Copy-paste augmentation - disabled
+
+# NMS settings - CRITICAL FOR REDUCING DUPLICATE DETECTIONS
+iou: 0.5                 # NMS IoU threshold (LOWERED from 0.7 to reduce duplicates)
+
+# Training settings
+close_mosaic: 10         # Disable mosaic last N epochs for stability
+
+# Multi-class notes:
+# - cls loss weight (0.7) is higher than single-class (0.5) for better classification
+# - Lower NMS threshold (0.5) reduces duplicate detections
+# - Small mixup (0.05) helps with class boundaries
+# - Train for 150-200 epochs instead of 100 for 3 classes
