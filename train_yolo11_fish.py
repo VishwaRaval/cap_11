@@ -636,8 +636,8 @@ def main():
                        help='Input image size (default: 768 to match Roboflow preprocessing)')
     parser.add_argument('--device', type=str, default='0',
                        help='CUDA device, i.e. 0 or 0,1,2,3 or cpu (default: 0)')
-    parser.add_argument('--workers', type=int, default=8,
-                       help='Number of dataloader workers (default: 8)')
+    parser.add_argument('--workers', type=int, default=4,
+                       help='Number of dataloader workers (default: 4)')
     
     # Output arguments
     parser.add_argument('--project', type=str, default='runs/detect',
