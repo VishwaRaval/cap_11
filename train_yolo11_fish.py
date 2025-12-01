@@ -6,7 +6,7 @@ Supports:
 - Multiple model sizes (nano, small)
 - COCO pretrained or custom checkpoint initialization
 - Detailed per-epoch metrics logging with W&B
-- Real-time experiment tracking
+- Real-time experiment tracking with comprehensive graphing
 - Edge deployment focused on YOLOv11n
 
 Usage:
@@ -135,15 +135,41 @@ def setup_wandb(args, train_config):
     )
     
     # Define custom metrics for better visualization
+    # This ensures metrics are tracked as time series graphs
     wandb.define_metric("epoch")
     wandb.define_metric("train/*", step_metric="epoch")
     wandb.define_metric("val/*", step_metric="epoch")
     wandb.define_metric("metrics/*", step_metric="epoch")
     wandb.define_metric("lr/*", step_metric="epoch")
     
+    # Explicitly define key metrics for graphing in the metrics panel
+    # These will show up as line graphs with proper min/max summaries
+    wandb.define_metric("train/box_loss", step_metric="epoch", summary="min")
+    wandb.define_metric("train/cls_loss", step_metric="epoch", summary="min")
+    wandb.define_metric("train/dfl_loss", step_metric="epoch", summary="min")
+    
+    wandb.define_metric("val/box_loss", step_metric="epoch", summary="min")
+    wandb.define_metric("val/cls_loss", step_metric="epoch", summary="min")
+    wandb.define_metric("val/dfl_loss", step_metric="epoch", summary="min")
+    
+    wandb.define_metric("metrics/precision(B)", step_metric="epoch", summary="max")
+    wandb.define_metric("metrics/recall(B)", step_metric="epoch", summary="max")
+    wandb.define_metric("metrics/mAP50(B)", step_metric="epoch", summary="max")
+    wandb.define_metric("metrics/mAP50-95(B)", step_metric="epoch", summary="max")
+    
+    # Learning rates for all parameter groups
+    wandb.define_metric("lr/pg0", step_metric="epoch", summary="last")
+    wandb.define_metric("lr/pg1", step_metric="epoch", summary="last")
+    wandb.define_metric("lr/pg2", step_metric="epoch", summary="last")
+    
     print(f"✓ W&B initialized: {run.name}")
     print(f"  Project: {args.wandb_project}")
     print(f"  URL: {run.url}")
+    print(f"  📊 Configured metrics for real-time graphing:")
+    print(f"     - Training losses: box_loss, cls_loss, dfl_loss")
+    print(f"     - Validation losses: box_loss, cls_loss, dfl_loss")
+    print(f"     - Performance: Precision, Recall, mAP50, mAP50-95")
+    print(f"     - Learning rates: pg0, pg1, pg2")
     
     return run
 
@@ -190,21 +216,21 @@ def log_to_wandb(results_dir, wandb_run, args):
             
             # Performance metrics
             if 'metrics/precision(B)' in row:
-                metrics['metrics/precision'] = float(row['metrics/precision(B)'])
+                metrics['metrics/precision(B)'] = float(row['metrics/precision(B)'])
             if 'metrics/recall(B)' in row:
-                metrics['metrics/recall'] = float(row['metrics/recall(B)'])
+                metrics['metrics/recall(B)'] = float(row['metrics/recall(B)'])
             if 'metrics/mAP50(B)' in row:
-                metrics['metrics/mAP50'] = float(row['metrics/mAP50(B)'])
+                metrics['metrics/mAP50(B)'] = float(row['metrics/mAP50(B)'])
             if 'metrics/mAP50-95(B)' in row:
-                metrics['metrics/mAP50-95'] = float(row['metrics/mAP50-95(B)'])
+                metrics['metrics/mAP50-95(B)'] = float(row['metrics/mAP50-95(B)'])
             
             # Learning rate (if available)
             if 'lr/pg0' in row:
-                metrics['lr/param_group_0'] = float(row['lr/pg0'])
+                metrics['lr/pg0'] = float(row['lr/pg0'])
             if 'lr/pg1' in row:
-                metrics['lr/param_group_1'] = float(row['lr/pg1'])
+                metrics['lr/pg1'] = float(row['lr/pg1'])
             if 'lr/pg2' in row:
-                metrics['lr/param_group_2'] = float(row['lr/pg2'])
+                metrics['lr/pg2'] = float(row['lr/pg2'])
             
             # Additional metrics if available
             if 'metrics/precision(M)' in row:
@@ -213,22 +239,22 @@ def log_to_wandb(results_dir, wandb_run, args):
                 metrics['metrics/mask_recall'] = float(row['metrics/recall(M)'])
             
             # Compute derived metrics
-            if 'metrics/precision' in metrics and 'metrics/recall' in metrics:
-                p = metrics['metrics/precision']
-                r = metrics['metrics/recall']
+            if 'metrics/precision(B)' in metrics and 'metrics/recall(B)' in metrics:
+                p = metrics['metrics/precision(B)']
+                r = metrics['metrics/recall(B)']
                 if p + r > 0:
                     metrics['metrics/f1_score'] = 2 * (p * r) / (p + r)
                     
             # Compute improvement over baseline
-            if 'metrics/recall' in metrics:
+            if 'metrics/recall(B)' in metrics:
                 baseline_recall = 0.568
-                metrics['metrics/recall_improvement'] = metrics['metrics/recall'] - baseline_recall
-                metrics['metrics/recall_improvement_pct'] = (metrics['metrics/recall'] - baseline_recall) / baseline_recall * 100
+                metrics['metrics/recall_improvement'] = metrics['metrics/recall(B)'] - baseline_recall
+                metrics['metrics/recall_improvement_pct'] = (metrics['metrics/recall(B)'] - baseline_recall) / baseline_recall * 100
             
-            if 'metrics/mAP50' in metrics:
+            if 'metrics/mAP50(B)' in metrics:
                 baseline_map50 = 0.636
-                metrics['metrics/map50_improvement'] = metrics['metrics/mAP50'] - baseline_map50
-                metrics['metrics/map50_improvement_pct'] = (metrics['metrics/mAP50'] - baseline_map50) / baseline_map50 * 100
+                metrics['metrics/map50_improvement'] = metrics['metrics/mAP50(B)'] - baseline_map50
+                metrics['metrics/map50_improvement_pct'] = (metrics['metrics/mAP50(B)'] - baseline_map50) / baseline_map50 * 100
             
             # Log to wandb
             wandb_run.log(metrics, step=int(row.get('epoch', idx)))
@@ -460,6 +486,7 @@ def train_yolo(args):
         os.environ['WANDB_MODE'] = 'online'
         print("✓ Ultralytics W&B integration enabled for real-time logging")
         print("  Metrics will be logged automatically after each epoch")
+        print("  📈 View live graphs at:", wandb_run.url)
     
     # Print training configuration
     print("\n" + "=" * 70)
