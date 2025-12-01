@@ -1,0 +1,71 @@
+# YOLOv11 Hyperparameters for SEVERELY IMBALANCED 3-Class Detection
+# Optimized for: Parrot Fish (7.2%), Grunt Fish (30%), Surgeon Fish (62.8%)
+# Imbalance ratio: 8.73x - SEVERE!
+
+# Learning rate settings - WITH ADAPTIVE LR
+lr0: 0.01                # Initial learning rate
+lrf: 0.001               # Final learning rate (lower for fine-tuning)
+momentum: 0.937          # SGD momentum
+weight_decay: 0.0005     # L2 regularization
+warmup_epochs: 3.0       # Warmup epochs
+warmup_momentum: 0.8     
+warmup_bias_lr: 0.1      
+
+# Loss weights - HEAVILY OPTIMIZED FOR CLASS IMBALANCE
+box: 7.5                 # Box loss gain
+cls: 1.2                 # Classification loss gain (INCREASED to 1.2 for severe imbalance!)
+                         # Higher cls loss forces model to learn minority classes
+dfl: 1.5                 # Distribution Focal Loss gain
+
+# Focal Loss parameters (helps with hard examples and class imbalance)
+fl_gamma: 2.0            # Focal loss gamma - focus on hard-to-classify examples
+                         # Higher gamma = more focus on misclassified examples
+
+# Augmentation settings - ENHANCED for minority class
+# More aggressive augmentation helps minority class (Parrot Fish) generalization
+
+# Geometric augmentations
+degrees: 5.0             # INCREASED from 3.0 - more rotation helps minority class
+translate: 0.15          # INCREASED from 0.1 - more translation
+scale: 0.5               # INCREASED from 0.4 - more scale variation
+shear: 3.0               # INCREASED from 2.0 - more shear
+perspective: 0.0001      # Slight perspective
+flipud: 0.0              # NO vertical flip (fish don't swim upside down!)
+fliplr: 0.5              # Horizontal flip
+
+# Photometric augmentations - ENHANCED
+hsv_h: 0.02              # Hue variation (increased for species distinction)
+hsv_s: 0.6               # INCREASED saturation variation
+hsv_v: 0.4               # INCREASED value/brightness variation
+
+# Multi-class specific augmentations - CRITICAL FOR IMBALANCE
+mosaic: 1.0              # Mosaic augmentation (essential!)
+mixup: 0.10              # INCREASED from 0.05 - helps minority class boundaries
+copy_paste: 0.1          # ENABLED copy-paste (helps duplicate minority class samples)
+
+# NMS settings
+iou: 0.45                # LOWERED from 0.5 - more aggressive NMS for cleaner predictions
+
+# Label smoothing - helps with overconfident predictions on majority class
+label_smoothing: 0.05    # Slight label smoothing
+
+# Training stability
+close_mosaic: 15         # Disable mosaic later (15 epochs before end)
+
+# Dropout for regularization (helps prevent overfitting to majority class)
+dropout: 0.1             # Add dropout to prevent majority class dominance
+
+# Additional settings for class imbalance:
+# NOTE: These are handled in training script, not in YAML:
+# - Class weights: Parrot Fish will get ~3.5x weight
+# - ReduceLROnPlateau: LR reduces when val_loss plateaus
+# - Early stopping: Stops if no improvement for 50 epochs
+# - Longer training: 150-200 epochs recommended
+
+# Performance improvement notes:
+# 1. Higher cls loss (1.2) forces better classification
+# 2. Focal loss (fl_gamma=2.0) focuses on hard minority examples
+# 3. More augmentation helps minority class generalization
+# 4. Mixup (0.10) and copy-paste (0.1) create synthetic minority samples
+# 5. Label smoothing prevents overconfidence on majority class
+# 6. Dropout prevents overfitting to Surgeon Fish
