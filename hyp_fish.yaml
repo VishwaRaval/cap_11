@@ -1,42 +1,49 @@
-# YOLOv11 Hyperparameters for Underwater Fish Detection
-# Tailored for edge deployment with conservative augmentations
-# Dataset is already preprocessed by Roboflow (768x432, auto-contrast, brightness jitter)
+# YOLOv11 Hyperparameters - RECALL OPTIMIZED for 3-Class Imbalanced Detection
+# Specifically tuned to push recall from 55% -> 70%+
+# For use with YOLOv11s (more capacity than nano)
 
-# Learning rate settings
-lr0: 0.01  # initial learning rate (SGD=1E-2, Adam=1E-3)
-lrf: 0.01  # final OneCycleLR learning rate (lr0 * lrf)
-momentum: 0.937  # SGD momentum/Adam beta1
-weight_decay: 0.0005  # optimizer weight decay 5e-4
-warmup_epochs: 3.0  # warmup epochs (fractions ok)
-warmup_momentum: 0.8  # warmup initial momentum
-warmup_bias_lr: 0.1  # warmup initial bias lr
+# Learning rate settings - HIGHER initial LR, SLOWER decay
+lr0: 0.015                # Initial LR (INCREASED from 0.01 to explore more)
+lrf: 0.005                # Final LR (HIGHER than before - don't decay too much)
+momentum: 0.937           # SGD momentum
+weight_decay: 0.0003      # REDUCED weight decay (less regularization = more recall)
+warmup_epochs: 5.0        # LONGER warmup for larger model
+warmup_momentum: 0.8      
+warmup_bias_lr: 0.1       
 
-# Loss weights
-box: 7.5  # box loss gain
-cls: 0.5  # cls loss gain
-dfl: 1.5  # dfl loss gain
+# Loss weights - HEAVILY OPTIMIZED FOR RECALL
+box: 7.0                  # Box loss (slightly reduced to balance with cls)
+cls: 1.5                  # Classification loss (MAXIMUM emphasis on class learning!)
+dfl: 1.5                  # DFL loss
 
-# Data augmentation settings - CONSERVATIVE for underwater scenes
-# Roboflow already applied: resize 768x432, auto-contrast, brightness jitter, salt-pepper noise
+# Augmentation - MORE AGGRESSIVE for better generalization
+degrees: 7.0              # INCREASED rotation (was 3.0)
+translate: 0.15           # INCREASED translation (was 0.1)
+scale: 0.6                # INCREASED scale variation (was 0.4)
+shear: 4.0                # INCREASED shear (was 2.0)
+perspective: 0.0002       # INCREASED perspective (was 0.0)
+flipud: 0.0               # Still NO vertical flip
+fliplr: 0.5               # Horizontal flip
 
-# Geometric augmentations (VERY CONSERVATIVE - avoid distorting underwater geometry)
-degrees: 5.0  # image rotation (+/- deg) - very small to preserve orientation
-translate: 0.1  # image translation (+/- fraction) - small shifts only
-scale: 0.3  # image scale (+/- gain) - moderate scaling
-shear: 2.0  # image shear (+/- deg) - minimal shear
-perspective: 0.0001  # image perspective (+/- fraction), range 0-0.001 - almost none
-flipud: 0.0  # CRITICAL: NO vertical flip (unrealistic for underwater)
-fliplr: 0.5  # horizontal flip (50% probability - fish can swim either direction)
+# Photometric augmentations - ENHANCED
+hsv_h: 0.025              # INCREASED hue variation
+hsv_s: 0.7                # INCREASED saturation (was 0.5)
+hsv_v: 0.4                # INCREASED value/brightness (was 0.3)
 
-# Photometric augmentations (MILD - Roboflow already did brightness/contrast)
-hsv_h: 0.01  # image HSV-Hue augmentation (fraction) - minimal hue shift for underwater
-hsv_s: 0.4  # image HSV-Saturation augmentation (fraction) - moderate for water color variation
-hsv_v: 0.2  # image HSV-Value augmentation (fraction) - mild brightness variation
+# Multi-class augmentations - CRITICAL FOR RECALL
+mosaic: 1.0               # Keep mosaic
+mixup: 0.15               # INCREASED mixup (was 0.05) - helps recall!
+copy_paste: 0.15          # ENABLED copy-paste (creates more training samples)
 
-# Additional augmentations
-mosaic: 1.0  # enable mosaic augmentation (probability)
-mixup: 0.0  # mixup augmentation (probability) - disabled for cleaner fish detection
-copy_paste: 0.0  # copy-paste augmentation (probability) - disabled
+# NMS settings - CRITICAL FOR RECALL
+iou: 0.4                  # LOWERED IoU threshold (was 0.5) - less aggressive NMS
+conf: 0.15                # LOWER confidence threshold during training (helps recall)
 
-# Other training settings
-close_mosaic: 10  # disable mosaic augmentation for final N epochs
+# Training stability
+close_mosaic: 15          # Keep augmentation longer
+
+# Dropout - LIGHT regularization
+dropout: 0.05             # Very light dropout (was 0.1)
+
+# Label smoothing - helps prevent overconfidence
+label_smoothing: 0.05     # Smooth labels slightly
