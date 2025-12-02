@@ -1,49 +1,47 @@
-# YOLOv11 Hyperparameters - RECALL OPTIMIZED for 3-Class Imbalanced Detection
-# Specifically tuned to push recall from 55% -> 70%+
-# For use with YOLOv11s (more capacity than nano)
+# YOLOv11s Hyperparameters - MODERATE AUGMENTATION
+# Middle ground: More aggressive than original, less than recall_optimized
+# Goal: Stable training with gradual recall improvement
 
-# Learning rate settings - HIGHER initial LR, SLOWER decay
-lr0: 0.015                # Initial LR (INCREASED from 0.01 to explore more)
-lrf: 0.005                # Final LR (HIGHER than before - don't decay too much)
-momentum: 0.937           # SGD momentum
-weight_decay: 0.0003      # REDUCED weight decay (less regularization = more recall)
-warmup_epochs: 5.0        # LONGER warmup for larger model
+# Learning rate settings - MODERATE
+lr0: 0.012                # Slightly higher than 0.01, lower than 0.015
+lrf: 0.01                 # Moderate decay
+momentum: 0.937           
+weight_decay: 0.0004      # Light regularization
+warmup_epochs: 4.0        # Moderate warmup
 warmup_momentum: 0.8      
 warmup_bias_lr: 0.1       
 
-# Loss weights - HEAVILY OPTIMIZED FOR RECALL
-box: 7.0                  # Box loss (slightly reduced to balance with cls)
-cls: 1.5                  # Classification loss (MAXIMUM emphasis on class learning!)
-dfl: 1.5                  # DFL loss
+# Loss weights - BALANCED for recall + precision
+box: 7.5                  # Keep original box weight
+cls: 1.2                  # MODERATE increase (between 1.0 and 1.5)
+dfl: 1.5                  
 
-# Augmentation - MORE AGGRESSIVE for better generalization
-degrees: 7.0              # INCREASED rotation (was 3.0)
-translate: 0.15           # INCREASED translation (was 0.1)
-scale: 0.6                # INCREASED scale variation (was 0.4)
-shear: 4.0                # INCREASED shear (was 2.0)
-perspective: 0.0002       # INCREASED perspective (was 0.0)
-flipud: 0.0               # Still NO vertical flip
-fliplr: 0.5               # Horizontal flip
+# Augmentation - MODERATE (not too conservative, not too aggressive)
+degrees: 5.0              # Keep original (don't over-rotate fish)
+translate: 0.12           # Slight increase from 0.1
+scale: 0.5                # Moderate (between 0.3 and 0.6)
+shear: 3.0                # Moderate (between 2.0 and 4.0)
+perspective: 0.0001       # Keep minimal
+flipud: 0.0               # NO vertical flip
+fliplr: 0.5               
 
-# Photometric augmentations - ENHANCED
-hsv_h: 0.025              # INCREASED hue variation
-hsv_s: 0.7                # INCREASED saturation (was 0.5)
-hsv_v: 0.4                # INCREASED value/brightness (was 0.3)
+# Photometric augmentations - MODERATE
+hsv_h: 0.015              # Slight increase for species distinction
+hsv_s: 0.55               # Moderate (between 0.4 and 0.7)
+hsv_v: 0.3                # Moderate brightness variation
 
-# Multi-class augmentations - CRITICAL FOR RECALL
-mosaic: 1.0               # Keep mosaic
-mixup: 0.15               # INCREASED mixup (was 0.05) - helps recall!
-copy_paste: 0.15          # ENABLED copy-paste (creates more training samples)
+# Multi-class augmentations - MODERATE
+mosaic: 1.0               
+mixup: 0.08               # MODERATE (between 0.0 and 0.15)
+copy_paste: 0.08          # MODERATE copy-paste
 
-# NMS settings - CRITICAL FOR RECALL
-iou: 0.4                  # LOWERED IoU threshold (was 0.5) - less aggressive NMS
-conf: 0.15                # LOWER confidence threshold during training (helps recall)
+# NMS settings - SLIGHTLY MORE PERMISSIVE
+iou: 0.45                 # Between 0.4 and 0.5
+conf: 0.20                # Moderate confidence threshold
 
 # Training stability
-close_mosaic: 15          # Keep augmentation longer
+close_mosaic: 12          # Moderate
 
-# Dropout - LIGHT regularization
-dropout: 0.05             # Very light dropout (was 0.1)
-
-# Label smoothing - helps prevent overconfidence
-label_smoothing: 0.05     # Smooth labels slightly
+# Light regularization
+dropout: 0.05             
+label_smoothing: 0.05
