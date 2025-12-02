@@ -13,7 +13,7 @@ warmup_bias_lr: 0.1
 
 # Loss weights - HIGHER CLS for 3-class
 box: 7.5                  
-cls: 1.3                  # Higher than moderate (1.2) for class distinction
+cls: 1.5                 # Higher than moderate (1.2) for class distinction
 dfl: 1.5                  
 
 # Augmentation - VERY CONSERVATIVE (data is already enhanced by dehazing)
