@@ -1,0 +1,58 @@
+======================================================================
+CLASS DISTRIBUTION ANALYSIS - 3-Class Dataset
+======================================================================
+
+📊 TRAIN SET:
+  Total images: 2948
+
+  Class distribution:
+  Grunt Fish     :  2348 instances ( 30.0%) in  804 images ( 27.3%) ██████████████
+  Parrot Fish    :   564 instances (  7.2%) in  508 images ( 17.2%) ███
+  Surgeon Fish   :  4924 instances ( 62.8%) in 1952 images ( 66.2%) ███████████████████████████████
+
+  Imbalance ratio: 8.73x
+  ❌ SEVERE CLASS IMBALANCE (ratio > 3)
+     Consider class weighting or oversampling minority classes
+
+📊 VALID SET:
+  Total images: 169
+
+  Class distribution:
+  Grunt Fish     :   136 instances ( 32.7%) in   42 images ( 24.9%) ████████████████
+  Parrot Fish    :    40 instances (  9.6%) in   33 images ( 19.5%) ████
+  Surgeon Fish   :   240 instances ( 57.7%) in  113 images ( 66.9%) ████████████████████████████
+
+  Imbalance ratio: 6.00x
+  ❌ SEVERE CLASS IMBALANCE (ratio > 3)
+     Consider class weighting or oversampling minority classes
+
+📊 TEST SET:
+  Total images: 149
+
+  Class distribution:
+  Grunt Fish     :   111 instances ( 24.7%) in   30 images ( 20.1%) ████████████
+  Parrot Fish    :    29 instances (  6.5%) in   22 images ( 14.8%) ███
+  Surgeon Fish   :   309 instances ( 68.8%) in  111 images ( 74.5%) ████████████████████████████████
+
+  Imbalance ratio: 10.66x
+  ❌ SEVERE CLASS IMBALANCE (ratio > 3)
+     Consider class weighting or oversampling minority classes
+
+======================================================================
+RECOMMENDATIONS:
+======================================================================
+
+1. If class imbalance exists:
+   - Use class weights in loss function
+   - Oversample minority classes during training
+   - Use focal loss to focus on hard examples
+
+2. For multi-class detection:
+   - Increase cls_loss weight (currently 0.5, try 0.7-1.0)
+   - Train longer (150-200 epochs for 3 classes)
+   - Monitor per-class metrics in W&B
+
+3. Expected metrics for 3-class:
+   - mAP@50: 55-70% (lower than single-class)
+   - Recall per class: Monitor separately
+   - Some classes may perform better than others
