@@ -1,43 +1,43 @@
-# Stage 2: Fine-tuning with focus on minority class
+# Stage 2+: ULTRA minority class focus for Parrot Fish
 
-# Learning rate - LOWER for fine-tuning
-lr0: 0.003
-lrf: 0.001
+# Learning rate - Lower for stability
+lr0: 0.002
+lrf: 0.0005
 momentum: 0.937
 weight_decay: 0.0003
 warmup_epochs: 0.0
 warmup_momentum: 0.8
 warmup_bias_lr: 0.01
 
-# Loss weights - MAXIMUM CLS for refinement
+# Loss weights - EXTREME CLS focus
 box: 7.5
-cls: 2.0                  # ⬆️⬆️ VERY HIGH for minority class focus
+cls: 3.0                  # ⬆️⬆️⬆️ EXTREME for Parrot Fish
 dfl: 1.5
 
-# Augmentation - MINIMAL (preserve learned features)
-degrees: 2.0
-translate: 0.05
-scale: 0.3
-shear: 1.0
+# Augmentation - ULTRA MINIMAL (preserve what we learned)
+degrees: 1.0
+translate: 0.03
+scale: 0.2
+shear: 0.5
 perspective: 0.0
 flipud: 0.0
 fliplr: 0.5
 
 # Photometric - MINIMAL
-hsv_h: 0.005
-hsv_s: 0.2
-hsv_v: 0.1
+hsv_h: 0.003
+hsv_s: 0.15
+hsv_v: 0.08
 
-# Multi-class - LIGHT
-mosaic: 0.5
-mixup: 0.05
-copy_paste: 0.3           # ⬆️ Heavy copy-paste for minority
+# Multi-class - MAXIMUM copy-paste
+mosaic: 0.3               # ⬇️ Reduce mosaic to preserve context
+mixup: 0.0                # ⬇️ Disable mixup
+copy_paste: 0.5           # ⬆️⬆️ MAXIMUM for minority replication
 
-# NMS - RELAXED
-iou: 0.45
-conf: 0.15                # ⬇️ Much lower confidence for Parrot Fish
+# NMS - VERY RELAXED for minority
+iou: 0.40                 # ⬇️ Lower IOU
+conf: 0.10                # ⬇️⬇️ VERY low confidence for Parrot Fish
 
 # Training
-close_mosaic: 5
+close_mosaic: 3           # ⬇️ Close mosaic early
 dropout: 0.0
-label_smoothing: 0.15     # ⬆️ More smoothing for generalization
+label_smoothing: 0.20     # ⬆️ More smoothing
