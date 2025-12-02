@@ -218,6 +218,11 @@ def train_yolo(args):
     }
     
     # Add hyperparameters file
+    if args.hyp:
+        hyp_path = Path(args.hyp)
+    elif hyp_path.exists():
+        pass  # Use the hyp_path set earlier
+    
     if hyp_path.exists():
         train_config['cfg'] = str(hyp_path)
         print(f"✓ Using hyperparameters from: {hyp_path}")
@@ -342,6 +347,8 @@ def main():
                        help='Dataloader workers (default: 4)')
     parser.add_argument('--use-class-weights', action='store_true',
                        help='Use class weighting for imbalanced dataset')
+    parser.add_argument('--hyp', type=str, default=None,
+                       help='Path to custom hyperparameters YAML')
     parser.add_argument('--early-stop-patience', type=int, default=75,
                        help='Early stopping patience (default: 75)')
     parser.add_argument('--project', type=str, default='runs/detect',
