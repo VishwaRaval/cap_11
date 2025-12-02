@@ -47,7 +47,3 @@ dropout: 0.05             # Very light dropout (was 0.1)
 
 # Label smoothing - helps prevent overconfidence
 label_smoothing: 0.05     # Smooth labels slightly
-
-# Additional settings for recall optimization
-# These encourage the model to be more "generous" with detections
-anchor_t: 4.5             # Anchor threshold (higher = more positive anchors)
