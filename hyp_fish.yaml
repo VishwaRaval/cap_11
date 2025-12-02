@@ -1,53 +1,56 @@
-# YOLOv11s Hyperparameters - CONSERVATIVE for Dehazed Data
-# For use AFTER dehazing preprocessing
-# Goal: Let the clean images speak for themselves
+# YOLOv11s Hyperparameters - EXTREME MINORITY CLASS FOCUS
+# Targeting Parrot Fish (7.2% of dataset)
 
-# Learning rate settings - STANDARD
-lr0: 0.01                 # Standard initial LR
-lrf: 0.01                 # Standard decay
-momentum: 0.937           
-weight_decay: 0.0005      # Standard regularization
-warmup_epochs: 3.0        # Standard warmup
-warmup_momentum: 0.8      
-warmup_bias_lr: 0.1       
+# Learning rate - STANDARD
+lr0: 0.01
+lrf: 0.01
+momentum: 0.937
+weight_decay: 0.0005
+warmup_epochs: 3.0
+warmup_momentum: 0.8
+warmup_bias_lr: 0.1
 
-# Loss weights - HIGHER CLS for 3-class
-box: 7.5                  
-cls: 1.5                 # Higher than moderate (1.2) for class distinction
-dfl: 1.5                  
+# Loss weights - MAXIMUM CLS for minority class
+box: 7.5
+cls: 1.8                  # ⬆️ INCREASED from 1.3 to 1.8 (aggressive)
+dfl: 1.5
 
-# Augmentation - VERY CONSERVATIVE (data is already enhanced by dehazing)
-degrees: 3.0              # MINIMAL rotation
-translate: 0.1            # MINIMAL translation
-scale: 0.4                # MODERATE scale only
-shear: 2.0                # MINIMAL shear
-perspective: 0.0          # NO perspective
-flipud: 0.0               # NO vertical flip
-fliplr: 0.5               # Horizontal flip OK
+# Focal loss to handle hard examples (Parrot Fish)
+fl_gamma: 1.5             # ⬆️ HIGH focal loss (helps minority class)
 
-# Photometric augmentations - MINIMAL (dehazing already fixed lighting)
-hsv_h: 0.01               # MINIMAL hue shift
-hsv_s: 0.3                # LIGHT saturation variation
-hsv_v: 0.2                # LIGHT brightness variation
+# Augmentation - MODERATE (proven to work)
+degrees: 5.0
+translate: 0.1
+scale: 0.5
+shear: 2.0
+perspective: 0.0
+flipud: 0.0
+fliplr: 0.5
 
-# Multi-class augmentations - LIGHT
-mosaic: 1.0               
-mixup: 0.05               # LIGHT mixup
-copy_paste: 0.0           # NO copy-paste (clean data doesn't need it)
+# Photometric - MODERATE
+hsv_h: 0.015
+hsv_s: 0.5
+hsv_v: 0.3
 
-# NMS settings - BALANCED
-iou: 0.5                  # Standard NMS IoU
-conf: 0.25                # Standard confidence
+# Multi-class - HEAVY MIXUP for class confusion reduction
+mosaic: 1.0
+mixup: 0.15               # ⬆️ INCREASED from 0.05 to 0.15
+copy_paste: 0.2           # ⬆️ NEW: Copy-paste minority class instances
+
+# NMS - RELAXED for minority class
+iou: 0.5
+conf: 0.20                # ⬇️ LOWER from 0.25 to catch more Parrot Fish
 
 # Training stability
-close_mosaic: 10          
+close_mosaic: 10
 
-# Very light regularization (clean data needs less)
-dropout: 0.0              # NO dropout
-label_smoothing: 0.0      # NO label smoothing
+# Light regularization
+dropout: 0.0
+label_smoothing: 0.1      # ⬆️ NEW: Helps with class confusion
 
 # Notes:
-# - This assumes preprocessing has cleaned up the images
-# - Conservative augmentation lets the model learn from clean data
-# - Higher cls loss (1.3) for better 3-class distinction
-# - NO dropout/label smoothing - clean data trains better without excessive regularization
+# - cls=1.8: Heavily penalizes misclassification
+# - fl_gamma=1.5: Focal loss focuses on hard examples (Parrot Fish)
+# - mixup=0.15: More class mixing to reduce confusion
+# - copy_paste=0.2: Augment by pasting minority class instances
+# - conf=0.20: Lower threshold to detect more Parrot Fish
