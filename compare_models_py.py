@@ -139,7 +139,7 @@ def main():
     parser.add_argument('--data', type=str, required=True,
                        help='Path to data.yaml file')
     parser.add_argument('--split', type=str, default='test',
-                       choices=['train', 'val', 'test'],
+                       choices=['train', 'valid', 'test'],
                        help='Dataset split to validate on (default: test)')
     parser.add_argument('--imgsz', type=int, default=768,
                        help='Input image size (default: 768)')
