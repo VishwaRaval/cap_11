@@ -15,9 +15,6 @@ box: 7.5
 cls: 1.8                  # ⬆️ INCREASED from 1.3 to 1.8 (aggressive)
 dfl: 1.5
 
-# Focal loss to handle hard examples (Parrot Fish)
-fl_gamma: 1.5             # ⬆️ HIGH focal loss (helps minority class)
-
 # Augmentation - MODERATE (proven to work)
 degrees: 5.0
 translate: 0.1
@@ -50,7 +47,7 @@ label_smoothing: 0.1      # ⬆️ NEW: Helps with class confusion
 
 # Notes:
 # - cls=1.8: Heavily penalizes misclassification
-# - fl_gamma=1.5: Focal loss focuses on hard examples (Parrot Fish)
 # - mixup=0.15: More class mixing to reduce confusion
 # - copy_paste=0.2: Augment by pasting minority class instances
 # - conf=0.20: Lower threshold to detect more Parrot Fish
+# - label_smoothing=0.1: Reduces overconfidence, helps minority class
