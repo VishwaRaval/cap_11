@@ -1,0 +1,53 @@
+# YOLOv11 Hyperparameters - RECALL OPTIMIZED for 3-Class Imbalanced Detection
+# Specifically tuned to push recall from 55% -> 70%+
+# For use with YOLOv11s (more capacity than nano)
+
+# Learning rate settings - HIGHER initial LR, SLOWER decay
+lr0: 0.015                # Initial LR (INCREASED from 0.01 to explore more)
+lrf: 0.005                # Final LR (HIGHER than before - don't decay too much)
+momentum: 0.937           # SGD momentum
+weight_decay: 0.0003      # REDUCED weight decay (less regularization = more recall)
+warmup_epochs: 5.0        # LONGER warmup for larger model
+warmup_momentum: 0.8      
+warmup_bias_lr: 0.1       
+
+# Loss weights - HEAVILY OPTIMIZED FOR RECALL
+box: 7.0                  # Box loss (slightly reduced to balance with cls)
+cls: 1.5                  # Classification loss (MAXIMUM emphasis on class learning!)
+dfl: 1.5                  # DFL loss
+
+# Augmentation - MORE AGGRESSIVE for better generalization
+degrees: 7.0              # INCREASED rotation (was 3.0)
+translate: 0.15           # INCREASED translation (was 0.1)
+scale: 0.6                # INCREASED scale variation (was 0.4)
+shear: 4.0                # INCREASED shear (was 2.0)
+perspective: 0.0002       # INCREASED perspective (was 0.0)
+flipud: 0.0               # Still NO vertical flip
+fliplr: 0.5               # Horizontal flip
+
+# Photometric augmentations - ENHANCED
+hsv_h: 0.025              # INCREASED hue variation
+hsv_s: 0.7                # INCREASED saturation (was 0.5)
+hsv_v: 0.4                # INCREASED value/brightness (was 0.3)
+
+# Multi-class augmentations - CRITICAL FOR RECALL
+mosaic: 1.0               # Keep mosaic
+mixup: 0.15               # INCREASED mixup (was 0.05) - helps recall!
+copy_paste: 0.15          # ENABLED copy-paste (creates more training samples)
+
+# NMS settings - CRITICAL FOR RECALL
+iou: 0.4                  # LOWERED IoU threshold (was 0.5) - less aggressive NMS
+conf: 0.15                # LOWER confidence threshold during training (helps recall)
+
+# Training stability
+close_mosaic: 15          # Keep augmentation longer
+
+# Dropout - LIGHT regularization
+dropout: 0.05             # Very light dropout (was 0.1)
+
+# Label smoothing - helps prevent overconfidence
+label_smoothing: 0.05     # Smooth labels slightly
+
+# Additional settings for recall optimization
+# These encourage the model to be more "generous" with detections
+anchor_t: 4.5             # Anchor threshold (higher = more positive anchors)
