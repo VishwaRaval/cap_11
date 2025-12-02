@@ -152,15 +152,22 @@ def train_yolo(args):
     # Update data.yaml
     data_yaml = update_data_yaml(dataset_root)
     
-    # Model weights
-    model_sizes = {
-        'n': 'yolo11n.pt',
-        's': 'yolo11s.pt',
-        'm': 'yolo11m.pt',
-    }
-    
-    weights_path = model_sizes.get(args.model, 'yolo11n.pt')
-    print(f"✓ Using COCO pretrained weights: {weights_path}")
+    # Model weights - handle both pretrained and custom weights
+    if args.model.endswith('.pt'):
+        # Custom weights path provided (for fine-tuning)
+        weights_path = args.model
+        if not Path(weights_path).exists():
+            raise FileNotFoundError(f"Weights not found: {weights_path}")
+        print(f"✓ Loading existing weights for fine-tuning: {weights_path}")
+    else:
+        # Standard model size (n, s, m)
+        model_sizes = {
+            'n': 'yolo11n.pt',
+            's': 'yolo11s.pt',
+            'm': 'yolo11m.pt',
+        }
+        weights_path = model_sizes.get(args.model, 'yolo11n.pt')
+        print(f"✓ Using COCO pretrained weights: {weights_path}")
     
     # Create experiment name
     exp_name = f"fish_{args.model}_{args.name}" if args.name else f"fish_{args.model}"
@@ -321,8 +328,8 @@ def main():
     
     parser.add_argument('--data', type=str, required=True,
                        help='Path to dataset root')
-    parser.add_argument('--model', type=str, default='n', choices=['n', 's', 'm'],
-                       help='Model size (default: n for edge)')
+    parser.add_argument('--model', type=str, default='n',
+                       help='Model size (n/s/m) or path to .pt weights for fine-tuning')
     parser.add_argument('--epochs', type=int, default=150,
                        help='Training epochs (default: 150)')
     parser.add_argument('--batch', type=int, default=16,
