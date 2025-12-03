@@ -1,0 +1,53 @@
+# ULTRA-STABLE Hyperparameters for Final Push to 70%
+# Strategy: Maximum gradient stability + prevent overfitting
+# Key: Large batch (64) + Very low LR (0.0001) + Minimal augmentation
+
+# Learning rate - EXTREMELY LOW for ultra-stable convergence
+lr0: 0.0001               # ⬇️⬇️⬇️ 100x lower than default (was 0.01)
+lrf: 0.00001              # ⬇️⬇️⬇️ Final LR (10% of initial)
+momentum: 0.95            # ⬆️ Higher momentum for stability
+weight_decay: 0.0015      # ⬆️⬆️ Very strong regularization (3x default)
+warmup_epochs: 20.0       # ⬆️⬆️ Very long warmup for stability
+warmup_momentum: 0.85     # ⬆️ Higher warmup momentum
+warmup_bias_lr: 0.00005   # ⬇️⬇️ Very low bias LR
+
+# Loss weights - BALANCED (no extreme values to avoid instability)
+box: 7.5
+cls: 1.5                  # Moderate class focus
+dfl: 1.5
+
+# Augmentation - ABSOLUTE MINIMUM (preserve learned features)
+degrees: 0.5              # ⬇️⬇️⬇️ Minimal rotation
+translate: 0.02           # ⬇️⬇️⬇️ Minimal translation
+scale: 0.1                # ⬇️⬇️⬇️ Minimal scale variation
+shear: 0.0                # ❌ Disabled
+perspective: 0.0          # ❌ Disabled
+flipud: 0.0               # ❌ No vertical flip
+fliplr: 0.5               # ✓ Only horizontal flip
+
+# Photometric - ABSOLUTE MINIMUM
+hsv_h: 0.001              # ⬇️⬇️⬇️ Minimal hue
+hsv_s: 0.05               # ⬇️⬇️⬇️ Minimal saturation
+hsv_v: 0.03               # ⬇️⬇️⬇️ Minimal brightness
+
+# Multi-class augmentations - ALL DISABLED for stability
+mosaic: 0.0               # ❌ Disabled (causes training instability)
+mixup: 0.0                # ❌ Disabled
+copy_paste: 0.0           # ❌ Disabled
+
+# NMS settings - STANDARD
+iou: 0.5
+conf: 0.25
+
+# Training stability - MAXIMUM REGULARIZATION
+close_mosaic: 0           # Not needed (mosaic disabled)
+dropout: 0.25             # ⬆️⬆️⬆️ Very strong dropout
+label_smoothing: 0.15     # ⬆️ Strong label smoothing
+
+# Key Strategy:
+# 1. Use with LARGE batch (64) for stable gradients
+# 2. VERY low LR (0.0001) = minimal parameter updates
+# 3. NO augmentation = preserve what model already learned
+# 4. Strong regularization = prevent overfitting
+# 5. Long training (300 epochs) with early stopping (patience=50)
+# 6. AdamW optimizer for better convergence

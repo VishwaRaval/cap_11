@@ -1,0 +1,52 @@
+# EXTREME STABILITY Hyperparameters - Last Resort for 70%
+# If ultra_stable doesn't work, try this with batch=80-96
+# Strategy: MINIMAL updates per epoch, MAXIMUM gradient stability
+
+# Learning rate - EXTREMELY LOW (200x lower than default)
+lr0: 0.00005              # ⬇️⬇️⬇️⬇️ 200x lower than default (was 0.01)
+lrf: 0.000005             # ⬇️⬇️⬇️⬇️ Final LR (10% of initial)
+momentum: 0.98            # ⬆️⬆️ Very high momentum for ultra-smooth updates
+weight_decay: 0.002       # ⬆️⬆️⬆️ Maximum regularization (4x default)
+warmup_epochs: 30.0       # ⬆️⬆️⬆️ Very long warmup (10% of training)
+warmup_momentum: 0.90     # ⬆️⬆️ Very high warmup momentum
+warmup_bias_lr: 0.00001   # ⬇️⬇️⬇️ Minimal bias LR
+
+# Loss weights - PERFECTLY BALANCED
+box: 7.5
+cls: 1.2                  # Slightly higher for classification
+dfl: 1.5
+
+# Augmentation - ZERO (except horizontal flip)
+degrees: 0.0              # ❌ No rotation
+translate: 0.0            # ❌ No translation
+scale: 0.0                # ❌ No scale
+shear: 0.0                # ❌ No shear
+perspective: 0.0          # ❌ No perspective
+flipud: 0.0               # ❌ No vertical flip
+fliplr: 0.5               # ✓ Only horizontal flip
+
+# Photometric - ZERO
+hsv_h: 0.0                # ❌ No hue variation
+hsv_s: 0.0                # ❌ No saturation
+hsv_v: 0.0                # ❌ No brightness
+
+# Multi-class augmentations - ALL DISABLED
+mosaic: 0.0               # ❌
+mixup: 0.0                # ❌
+copy_paste: 0.0           # ❌
+
+# NMS
+iou: 0.5
+conf: 0.25
+
+# Regularization - MAXIMUM
+close_mosaic: 0
+dropout: 0.30             # ⬆️⬆️⬆️⬆️ Maximum dropout
+label_smoothing: 0.20     # ⬆️⬆️⬆️ Maximum smoothing
+
+# Usage notes:
+# - MUST use with batch >= 80 for this to work
+# - Expect 400-500 epochs to converge
+# - Will be VERY slow but VERY stable
+# - Use patience=100 for early stopping
+# - This is the most conservative possible configuration
