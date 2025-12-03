@@ -202,7 +202,7 @@ def train_yolo(args):
         'deterministic': True,
         'single_cls': False,
         'rect': False,
-        'cos_lr': False,
+        'cos_lr': True,
         'close_mosaic': 10,
         'resume': False,
         'amp': True,
