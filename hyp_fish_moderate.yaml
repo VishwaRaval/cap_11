@@ -1,0 +1,49 @@
+# MODERATE Hyperparameters - Balance Between Stability and Learning
+# Strategy: Not too conservative, not too aggressive
+
+# Learning rate - MODERATE (between ultra-stable and normal)
+lr0: 0.0003               # 30x lower than default (was 0.01)
+lrf: 0.00003              # 10% of initial
+momentum: 0.937           # Standard momentum
+weight_decay: 0.001       # Moderate regularization (2x default)
+warmup_epochs: 10.0       # Moderate warmup
+warmup_momentum: 0.8      
+warmup_bias_lr: 0.0001    
+
+# Loss weights - BALANCED
+box: 7.5
+cls: 1.5                  
+dfl: 1.5
+
+# Augmentation - LIGHT (some augmentation helps)
+degrees: 2.0              # Light rotation
+translate: 0.05           # Light translation
+scale: 0.3                # Light scale variation
+shear: 1.0                # Light shear
+perspective: 0.0          
+flipud: 0.0               
+fliplr: 0.5               
+
+# Photometric - LIGHT
+hsv_h: 0.01               
+hsv_s: 0.2                
+hsv_v: 0.1                
+
+# Multi-class augmentations - LIGHT
+mosaic: 0.3               # Light mosaic
+mixup: 0.05               # Light mixup
+copy_paste: 0.0           
+
+# NMS settings
+iou: 0.5
+conf: 0.25
+
+# Training stability - MODERATE
+close_mosaic: 10          
+dropout: 0.15             # Moderate dropout
+label_smoothing: 0.10     # Moderate label smoothing
+
+# Key difference from ultra-stable:
+# - Higher LR (0.0003 vs 0.0001) = more learning capacity
+# - Some augmentation = better generalization
+# - Less dropout (0.15 vs 0.25) = less forgetting
