@@ -81,7 +81,7 @@ def print_comparison_table(all_metrics):
     best_model_idx = 0
     
     for i, m in enumerate(all_metrics):
-        name = m['name'][:23]  # Truncate long names
+        name = m['name'][:33]  # Truncate long names
         prec = m['precision']
         rec = m['recall']
         f1 = m['f1']
