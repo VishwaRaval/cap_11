@@ -1,0 +1,43 @@
+# Stable fine-tuning with better convergence
+
+# Learning rate - LOWER and smoother decay
+lr0: 0.001                # ⬇️ Much lower for stability
+lrf: 0.0001               # ⬇️ Gentle decay
+momentum: 0.937
+weight_decay: 0.0005      # ⬆️ More regularization
+warmup_epochs: 3.0        # ⬆️ Longer warmup for stability
+warmup_momentum: 0.8
+warmup_bias_lr: 0.005
+
+# Loss weights - BALANCED
+box: 7.5
+cls: 2.0                  # Moderate cls focus
+dfl: 1.5
+
+# Augmentation - CONSERVATIVE (preserve learned features)
+degrees: 3.0
+translate: 0.1
+scale: 0.4
+shear: 2.0
+perspective: 0.0
+flipud: 0.0
+fliplr: 0.5
+
+# Photometric - LIGHT
+hsv_h: 0.01
+hsv_s: 0.3
+hsv_v: 0.2
+
+# Multi-class - MODERATE
+mosaic: 0.6
+mixup: 0.1
+copy_paste: 0.3
+
+# NMS - STANDARD
+iou: 0.5
+conf: 0.2
+
+# Training - FOCUS ON STABILITY
+close_mosaic: 5
+dropout: 0.1              # ⬆️ Add dropout for regularization
+label_smoothing: 0.1
