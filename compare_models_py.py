@@ -74,7 +74,7 @@ def print_comparison_table(all_metrics):
     print("="*80)
     print("")
     print("┌─" + "─" * 78 + "─┐")
-    print(f"│ {'MODEL':<25} {'PREC':>8} {'REC':>8} {'F1':>8} {'mAP50':>8} {'AVG_ACC':>8} {'TARGET':>7} │")
+    print(f"│ {'MODEL':<35} {'PREC':>8} {'REC':>8} {'F1':>8} {'mAP50':>8} {'AVG_ACC':>8} {'TARGET':>7} │")
     print("├─" + "─" * 78 + "─┤")
     
     best_avg_acc = 0
