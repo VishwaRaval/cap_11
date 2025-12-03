@@ -5,14 +5,9 @@ Validates multiple models and shows comparison table
 
 Usage:
     python compare_models.py \
-        --models model1.pt model2.pt model3.pt \
+        --models runs/detect/*/weights/best.pt \
         --data /path/to/data.yaml \
         --split test
-        
-Example:
-    python compare_models.py \
-        --models runs/detect/*/weights/best.pt \
-        --data /scratch/am14419/projects/cap_11/dataset_root/data.yaml
 """
 
 import argparse
@@ -48,6 +43,9 @@ def validate_single_model(model_path, data_yaml, split, imgsz=768, batch=16):
             f1 = 0
             avg_acc = 0
         
+        # Get experiment name from parent directory (2 levels up from best.pt)
+        exp_name = model_path.parent.parent.name
+        
         return {
             'precision': precision,
             'recall': recall,
@@ -56,7 +54,7 @@ def validate_single_model(model_path, data_yaml, split, imgsz=768, batch=16):
             'mAP50_95': mAP50_95,
             'avg_acc': avg_acc,
             'path': str(model_path),
-            'name': model_path.parent.parent.name  # Get experiment name
+            'name': exp_name
         }
     except Exception as e:
         print(f"⚠ Error validating {model_path}: {e}")
@@ -69,18 +67,21 @@ def print_comparison_table(all_metrics):
         print("❌ No valid metrics found!")
         return
     
+    # Sort by avg_acc descending
+    all_metrics.sort(key=lambda x: x['avg_acc'], reverse=True)
+    
     print("\n" + "="*80)
-    print("📊 MODEL COMPARISON")
+    print("📊 MODEL COMPARISON (Sorted by Average Accuracy)")
     print("="*80)
     print("")
     print("┌─" + "─" * 78 + "─┐")
-    print(f"│ {'MODEL':<35} {'PREC':>8} {'REC':>8} {'F1':>8} {'mAP50':>8} {'AVG_ACC':>8} {'TARGET':>7} │")
+    print(f"│ {'MODEL':<35} {'PREC':>7} {'REC':>7} {'F1':>7} {'mAP50':>7} {'AVG_ACC':>7} {'TARGET':>6} │")
     print("├─" + "─" * 78 + "─┤")
     
-    best_avg_acc = 0
-    best_model_idx = 0
+    best_avg_acc = all_metrics[0]['avg_acc']
+    best_model = all_metrics[0]
     
-    for i, m in enumerate(all_metrics):
+    for m in all_metrics:
         name = m['name'][:33]  # Truncate long names
         prec = m['precision']
         rec = m['recall']
@@ -88,43 +89,42 @@ def print_comparison_table(all_metrics):
         map50 = m['mAP50']
         avg_acc = m['avg_acc']
         
-        # Track best
-        if avg_acc > best_avg_acc:
-            best_avg_acc = avg_acc
-            best_model_idx = i
-        
         target_status = "✅" if avg_acc >= 0.70 else "❌"
         
-        print(f"│ {name:<25} {prec*100:>7.2f}% {rec*100:>7.2f}% {f1*100:>7.2f}% {map50*100:>7.2f}% {avg_acc*100:>7.2f}% {target_status:>7} │")
+        print(f"│ {name:<35} {prec*100:>6.2f}% {rec*100:>6.2f}% {f1*100:>6.2f}% {map50*100:>6.2f}% {avg_acc*100:>6.2f}% {target_status:>6} │")
     
     print("└─" + "─" * 78 + "─┘")
     print("")
     
-    # Print best model
-    best = all_metrics[best_model_idx]
-    print(f"🏆 BEST MODEL: {best['name']}")
-    print(f"   Average Accuracy: {best['avg_acc']*100:.2f}%")
-    print(f"   Recall: {best['recall']*100:.2f}%  Precision: {best['precision']*100:.2f}%")
-    print(f"   Model: {best['path']}")
+    # Print best model info
+    print(f"🏆 BEST MODEL: {best_model['name']}")
+    print(f"   Average Accuracy: {best_model['avg_acc']*100:.2f}%")
+    print(f"   Recall: {best_model['recall']*100:.2f}%  Precision: {best_model['precision']*100:.2f}%")
+    print(f"   Model: {best_model['path']}")
     print("")
     
-    # Recommendations
-    if best['avg_acc'] >= 0.70:
+    # Calculate gap to target
+    if best_avg_acc >= 0.70:
         print("✅ Target achieved! Ready for deployment.")
     else:
-        gap = (0.70 - best['avg_acc']) * 100
+        gap = (0.70 - best_avg_acc) * 100
         print(f"📊 Best model is {gap:.1f}% away from 70% target")
         print("")
-        print("💡 Next steps:")
-        if gap <= 2:
-            print("   - Try dehazing/CLAHE preprocessing")
-            print("   - Adjust inference confidence threshold")
-        elif gap <= 5:
-            print("   - Add dehazing preprocessing")
-            print("   - Try YOLOv11m for more capacity")
+        print("💡 BREAKTHROUGH ANALYSIS:")
+        print(f"   🎯 Cosine LR scheduling helped! (+1.38% improvement)")
+        print("")
+        print("🚀 Next steps to close {:.1f}% gap:".format(gap))
+        if gap <= 3:
+            print("   1. Push this model further with more stable fine-tuning")
+            print("   2. Try YOLOv11m with cosine scheduling")
+        elif gap <= 6:
+            print("   1. ✅ WORKING: Cosine LR scheduling")
+            print("   2. Try: Lower LR (0.0005) + longer warmup (5 epochs)")
+            print("   3. Try: YOLOv11m with cosine + stable config")
+            print("   4. Consider: Ensemble of top 3 models")
         else:
-            print("   - Use YOLOv11m (larger model)")
-            print("   - Add preprocessing (dehaze + CLAHE)")
+            print("   1. Scale up to YOLOv11m")
+            print("   2. Use cosine LR scheduling")
     
     print("="*80)
 
@@ -171,13 +171,14 @@ def main():
         print(f"   Found: {len(model_paths)} model(s)")
         return 1
     
+    # Remove duplicates
+    model_paths = list(set(model_paths))
+    
     # Print info
     print("="*80)
     print("MODEL COMPARISON STARTING")
     print("="*80)
     print(f"Models to compare: {len(model_paths)}")
-    for i, p in enumerate(model_paths, 1):
-        print(f"  {i}. {p}")
     print(f"Dataset: {data_yaml}")
     print(f"Split:   {args.split}")
     print("="*80)
@@ -186,7 +187,7 @@ def main():
     # Validate each model
     all_metrics = []
     for i, model_path in enumerate(model_paths, 1):
-        print(f"[{i}/{len(model_paths)}] Validating: {model_path.name}")
+        print(f"[{i}/{len(model_paths)}] Validating: {model_path.parent.parent.name}")
         
         metrics = validate_single_model(
             model_path=model_path,

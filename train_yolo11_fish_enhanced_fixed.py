@@ -159,6 +159,14 @@ def train_yolo(args):
         if not Path(weights_path).exists():
             raise FileNotFoundError(f"Weights not found: {weights_path}")
         print(f"✓ Loading existing weights for fine-tuning: {weights_path}")
+        # Extract model size from path for naming
+        model_size = 's'  # default
+        if 'fish_m_' in str(weights_path) or '/m_' in str(weights_path):
+            model_size = 'm'
+        elif 'fish_n_' in str(weights_path) or '/n_' in str(weights_path):
+            model_size = 'n'
+        elif 'fish_s_' in str(weights_path) or '/s_' in str(weights_path):
+            model_size = 's'
     else:
         # Standard model size (n, s, m)
         model_sizes = {
@@ -166,11 +174,15 @@ def train_yolo(args):
             's': 'yolo11s.pt',
             'm': 'yolo11m.pt',
         }
+        model_size = args.model  # Store for naming
         weights_path = model_sizes.get(args.model, 'yolo11n.pt')
         print(f"✓ Using COCO pretrained weights: {weights_path}")
     
-    # Create experiment name
-    exp_name = f"fish_{args.model}_{args.name}" if args.name else f"fish_{args.model}"
+    # Create experiment name - FIX: Use consistent naming
+    if args.name:
+        exp_name = f"fish_{model_size}_{args.name}"
+    else:
+        exp_name = f"fish_{model_size}_experiment"
     
     # Check W&B environment variables
     if 'WANDB_API_KEY' in os.environ:
@@ -202,7 +214,7 @@ def train_yolo(args):
         'deterministic': True,
         'single_cls': False,
         'rect': False,
-        'cos_lr': True,
+        'cos_lr': True,  # KEEP THIS - IT'S WORKING!
         'close_mosaic': 10,
         'resume': False,
         'amp': True,
