@@ -1,0 +1,52 @@
+# YOLOv11 Hyperparameters - ULTRA CONSERVATIVE for Small Dataset (2950 images)
+# Designed to prevent overfitting with minimal updates
+
+# Learning rate - VERY LOW to prevent overfitting
+lr0: 0.0005               # ⬇️⬇️⬇️ 20x lower than default (was 0.01)
+lrf: 0.0001               # ⬇️⬇️⬇️ Very gentle decay
+momentum: 0.937
+weight_decay: 0.001       # ⬆️⬆️ STRONG regularization (2x default)
+warmup_epochs: 10.0       # ⬆️⬆️ Long warmup for stability
+warmup_momentum: 0.8
+warmup_bias_lr: 0.0002    # ⬇️⬇️ Very low warmup bias lr
+
+# Loss weights - BALANCED (no extreme values)
+box: 7.5
+cls: 1.0                  # Moderate for class learning
+dfl: 1.5
+
+# Augmentation - MINIMAL (preserve limited training data)
+degrees: 1.0              # ⬇️⬇️ Minimal rotation
+translate: 0.05           # ⬇️⬇️ Minimal translation
+scale: 0.2                # ⬇️⬇️ Minimal scale
+shear: 0.5                # ⬇️⬇️ Minimal shear
+perspective: 0.0          # ❌ Disabled
+flipud: 0.0               # ❌ No vertical flip (unrealistic)
+fliplr: 0.5               # ✓ Horizontal flip only
+
+# Photometric - VERY LIGHT (preserve LAB-corrected colors)
+hsv_h: 0.002              # ⬇️⬇️ Minimal hue variation
+hsv_s: 0.1                # ⬇️⬇️ Minimal saturation
+hsv_v: 0.05               # ⬇️⬇️ Minimal brightness
+
+# Multi-class augmentations - DISABLED/MINIMAL
+mosaic: 0.0               # ❌ Disabled (can cause overfitting on small datasets)
+mixup: 0.0                # ❌ Disabled
+copy_paste: 0.0           # ❌ Disabled
+
+# NMS settings
+iou: 0.5                  # Standard IoU threshold
+conf: 0.2                 # Standard confidence threshold
+
+# Training stability - MAXIMUM REGULARIZATION
+close_mosaic: 0           # ⬇️ Close immediately (mosaic disabled anyway)
+dropout: 0.2              # ⬆️⬆️ Strong dropout for regularization
+label_smoothing: 0.15     # ⬆️⬆️ Stronger label smoothing
+
+# Key strategy for small datasets:
+# 1. Very low learning rate (0.0005) = fewer parameter updates
+# 2. Large batch size (32-64) = more stable gradients, fewer updates per epoch
+# 3. Strong regularization (weight_decay=0.001, dropout=0.2)
+# 4. Minimal augmentation (don't distort limited data too much)
+# 5. Long training (200+ epochs) with early stopping
+# 6. Monitor validation loss closely - stop when it starts increasing
