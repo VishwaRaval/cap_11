@@ -1,0 +1,44 @@
+# RECALL-FOCUSED v2: Extreme box focus + Balanced approach
+# Goal: Maximum recall with better box quality
+
+# Learning rate - Ultra-stable
+lr0: 0.00008              # ⬇️ Slightly lower for stability
+lrf: 0.000008
+momentum: 0.96            # ⬆️ Slightly higher
+weight_decay: 0.0012      # ⬇️ Less regularization (allow flexibility)
+warmup_epochs: 18.0
+warmup_momentum: 0.85
+warmup_bias_lr: 0.00004
+
+# Loss weights - EXTREME BOX FOCUS
+box: 10.5                 # ⬆️⬆️⬆️ VERY HIGH box weight
+cls: 1.0                  # ⬇️⬇️ Minimal classification weight
+dfl: 2.0                  # ⬆️⬆️ High DFL for precise boxes
+
+# Augmentation - Slightly more for robustness
+degrees: 0.8              # ⬆️ Slightly more rotation
+translate: 0.03           # ⬆️ Slightly more translation
+scale: 0.12               # ⬆️ Slightly more scale
+shear: 0.0
+perspective: 0.0
+flipud: 0.0
+fliplr: 0.5
+
+# Photometric - Slightly more
+hsv_h: 0.002
+hsv_s: 0.07
+hsv_v: 0.05
+
+# Multi-class augmentations - Disabled
+mosaic: 0.0
+mixup: 0.0
+copy_paste: 0.0
+
+# NMS settings - VERY LOW CONFIDENCE for maximum recall
+iou: 0.40                 # ⬇️⬇️ Very lenient IoU
+conf: 0.10                # ⬇️⬇️⬇️ VERY LOW confidence threshold
+
+# Training stability
+close_mosaic: 0
+dropout: 0.15             # ⬇️⬇️ Low dropout (let model be confident)
+label_smoothing: 0.08     # ⬇️⬇️ Low smoothing (sharp predictions)

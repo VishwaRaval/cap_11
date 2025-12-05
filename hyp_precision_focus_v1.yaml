@@ -1,0 +1,44 @@
+# PRECISION-FOCUSED v1: High confidence + Strong classification
+# Goal: Maximize precision (reduce false positives)
+
+# Learning rate - Ultra-stable
+lr0: 0.0001
+lrf: 0.00001
+momentum: 0.95
+weight_decay: 0.0015
+warmup_epochs: 20.0
+warmup_momentum: 0.85
+warmup_bias_lr: 0.00005
+
+# Loss weights - PRECISION FOCUS
+box: 6.5                  # ⬇️ Slightly lower box weight
+cls: 2.5                  # ⬆️⬆️ HIGHER classification weight
+dfl: 1.5
+
+# Augmentation - Minimal
+degrees: 0.5
+translate: 0.02
+scale: 0.1
+shear: 0.0
+perspective: 0.0
+flipud: 0.0
+fliplr: 0.5
+
+# Photometric - Minimal
+hsv_h: 0.001
+hsv_s: 0.05
+hsv_v: 0.03
+
+# Multi-class augmentations - Disabled
+mosaic: 0.0
+mixup: 0.0
+copy_paste: 0.0
+
+# NMS settings - HIGHER CONFIDENCE for precision
+iou: 0.55                 # ⬆️ Stricter IoU
+conf: 0.35                # ⬆️⬆️ HIGHER confidence threshold
+
+# Training stability
+close_mosaic: 0
+dropout: 0.30             # ⬆️ Higher dropout (reduce overconfidence)
+label_smoothing: 0.20     # ⬆️ Higher smoothing (less overconfident predictions)

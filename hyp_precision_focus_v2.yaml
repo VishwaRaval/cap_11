@@ -1,0 +1,44 @@
+# PRECISION-FOCUSED v2: Extreme classification + Ultra-conservative
+# Goal: Maximum precision via very careful predictions
+
+# Learning rate - EVEN LOWER for super stable
+lr0: 0.00005              # ⬇️⬇️ Half of v1
+lrf: 0.000005             # ⬇️⬇️ Even lower final
+momentum: 0.97            # ⬆️ Higher momentum
+weight_decay: 0.002       # ⬆️ Stronger regularization
+warmup_epochs: 25.0       # ⬆️ Longer warmup
+warmup_momentum: 0.87
+warmup_bias_lr: 0.000025
+
+# Loss weights - EXTREME CLASSIFICATION FOCUS
+box: 6.0                  # ⬇️ Lower box weight
+cls: 3.5                  # ⬆️⬆️⬆️ VERY HIGH classification weight
+dfl: 1.2
+
+# Augmentation - Minimal
+degrees: 0.3              # ⬇️ Even less rotation
+translate: 0.01           # ⬇️ Even less translation
+scale: 0.08               # ⬇️ Even less scale
+shear: 0.0
+perspective: 0.0
+flipud: 0.0
+fliplr: 0.5
+
+# Photometric - Minimal
+hsv_h: 0.0005
+hsv_s: 0.03
+hsv_v: 0.02
+
+# Multi-class augmentations - Disabled
+mosaic: 0.0
+mixup: 0.0
+copy_paste: 0.0
+
+# NMS settings - VERY HIGH CONFIDENCE
+iou: 0.60                 # ⬆️⬆️ Very strict IoU
+conf: 0.40                # ⬆️⬆️⬆️ VERY HIGH confidence
+
+# Training stability - MAXIMUM
+close_mosaic: 0
+dropout: 0.35             # ⬆️⬆️ Very high dropout
+label_smoothing: 0.25     # ⬆️⬆️ Very high smoothing
