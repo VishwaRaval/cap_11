@@ -1,9 +1,9 @@
 #!/bin/bash
-# Clean up unnecessary validation prediction files created by YOLO training
-# These files are just visualization outputs and not needed for deployment
+# Clean up unnecessary validation directories created by YOLO training
+# These directories contain validation prediction visualizations and are not needed
 
 echo "════════════════════════════════════════════════════════════"
-echo "YOLO Validation Files Cleanup Script"
+echo "YOLO Validation Directories Cleanup Script"
 echo "════════════════════════════════════════════════════════════"
 echo ""
 
@@ -15,27 +15,37 @@ if [ ! -d "$RUNS_DIR" ]; then
     exit 1
 fi
 
-echo "Searching for validation prediction files in: $RUNS_DIR"
+echo "Searching for validation directories in: $RUNS_DIR"
 echo ""
 
-# Find all val* files (validation predictions) - images only
-VAL_FILES=$(find "$RUNS_DIR" -type f \( -name "val*.jpg" -o -name "val*.png" \) 2>/dev/null)
-VAL_COUNT=$(echo "$VAL_FILES" | grep -v '^$' | wc -l)
+# Find all directories that start with "val"
+VAL_DIRS=$(find "$RUNS_DIR" -type d -name "val*" 2>/dev/null)
+VAL_COUNT=$(echo "$VAL_DIRS" | grep -v '^$' | wc -l)
 
 if [ "$VAL_COUNT" -eq 0 ]; then
-    echo "✅ No validation files found. Nothing to clean up!"
+    echo "✅ No validation directories found. Nothing to clean up!"
     exit 0
 fi
 
 # Calculate total size
-TOTAL_SIZE=$(find "$RUNS_DIR" -type f \( -name "val*.jpg" -o -name "val*.png" \) -exec du -ch {} + 2>/dev/null | grep total$ | awk '{print $1}')
+TOTAL_SIZE=$(du -ch $(find "$RUNS_DIR" -type d -name "val*" 2>/dev/null) 2>/dev/null | grep total$ | awk '{print $1}')
 
-echo "Found $VAL_COUNT validation prediction files"
+echo "Found $VAL_COUNT validation directories:"
+echo "$VAL_DIRS" | while read dir; do
+    if [ -n "$dir" ]; then
+        dir_name=$(basename "$dir")
+        parent=$(basename $(dirname "$dir"))
+        size=$(du -sh "$dir" 2>/dev/null | cut -f1)
+        echo "  • $parent/$dir_name ($size)"
+    fi
+done
+
+echo ""
 echo "Total size: $TOTAL_SIZE"
 echo ""
-echo "These files are:"
+echo "These directories contain:"
 echo "  • Validation prediction visualizations (bounding boxes on images)"
-echo "  • Created when save=True in YOLO training config"
+echo "  • Created during YOLO validation runs"
 echo "  • NOT needed for training, evaluation, or deployment"
 echo "  • Safe to delete"
 echo ""
@@ -43,10 +53,11 @@ echo "Will keep:"
 echo "  • All .pt checkpoint files (best.pt, best_prec.pt, best_rec.pt, last.pt)"
 echo "  • All .csv files (results.csv, metrics_summary.csv)"
 echo "  • All plots (confusion_matrix.png, results.png, etc.)"
+echo "  • weights/ directories"
 echo ""
 
 # Ask for confirmation
-read -p "Delete validation image files? (yes/no): " CONFIRM
+read -p "Delete all validation directories? (yes/no): " CONFIRM
 
 if [ "$CONFIRM" != "yes" ]; then
     echo "❌ Cleanup cancelled"
@@ -54,14 +65,14 @@ if [ "$CONFIRM" != "yes" ]; then
 fi
 
 echo ""
-echo "🗑️  Deleting validation files..."
+echo "🗑️  Deleting validation directories..."
 
-# Delete all val* prediction images (but not .pt, .csv, or plot files)
-find "$RUNS_DIR" -type f \( -name "val*.jpg" -o -name "val*.png" \) -delete
+# Delete all directories starting with "val"
+find "$RUNS_DIR" -type d -name "val*" -exec rm -rf {} + 2>/dev/null
 
 echo ""
 echo "✅ Cleanup complete!"
-echo "   Deleted: $VAL_COUNT image files"
+echo "   Deleted: $VAL_COUNT directories"
 echo "   Freed: $TOTAL_SIZE"
 echo ""
 echo "✓ All checkpoint files (.pt) are safe and untouched"
