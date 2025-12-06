@@ -61,21 +61,16 @@ class MultiCheckpointTracker:
         
         # Helper function to save checkpoint
         def save_checkpoint(path, metric_value, metric_name):
-            """Save model checkpoint in YOLO format (stripped, same as best.pt)"""
+            """Save model checkpoint in YOLO format by copying last.pt"""
             try:
-                # CRITICAL: Copy the exact checkpoint structure that YOLO uses for best.pt
-                # Don't create our own - just copy YOLO's best.pt and update the metric
-                
-                best_path = self.weights_dir / 'best.pt'
-                if not best_path.exists():
-                    # If best.pt doesn't exist yet, we can't save custom checkpoints
+                # Copy last.pt which was just saved by YOLO for this epoch
+                last_path = self.weights_dir / 'last.pt'
+                if not last_path.exists():
                     return False
                 
-                # Load YOLO's best.pt (which has the correct format)
-                import shutil
-                
-                # Copy best.pt to our custom checkpoint
-                shutil.copy2(best_path, path)
+                # Copy last.pt to our custom checkpoint
+                # last.pt is the model from THIS epoch (the one where metric peaked)
+                shutil.copy2(last_path, path)
                 
                 print(f"  📊 New best {metric_name}: {metric_value:.4f} (epoch {epoch}) → saved to {path.name}")
                 return True
