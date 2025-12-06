@@ -62,20 +62,40 @@ class MultiCheckpointTracker:
         
         # Helper function to save checkpoint
         def save_checkpoint(path, metric_value, metric_name):
-            """Save model checkpoint in YOLO format by copying last.pt"""
+            """Save stripped model checkpoint (like YOLO's best.pt)"""
             try:
-                # Verify last.pt exists and was just updated
-                if not last_path.exists():
-                    return False
+                import torch
                 
-                # Copy last.pt to our custom checkpoint
-                # last.pt is the model from THIS epoch (the one where metric peaked)
-                shutil.copy2(last_path, path)
+                # Get the model from trainer
+                # YOLO strips to model.state_dict() for best.pt
+                model = trainer.ema.ema if trainer.ema else trainer.model
+                
+                # Create minimal checkpoint (same as YOLO's best.pt format)
+                ckpt = {
+                    'epoch': epoch,
+                    'best_fitness': metric_value,
+                    'model': None,  # Will be added below
+                    'ema': None,
+                    'updates': None,
+                    'optimizer': None,
+                    'train_args': vars(trainer.args),
+                    'date': None,
+                    'version': None,
+                }
+                
+                # Strip to half precision for smaller size (like YOLO does for best.pt)
+                ckpt['model'] = {k: v.half() if isinstance(v, torch.Tensor) and v.dtype == torch.float32 else v 
+                                for k, v in model.state_dict().items()}
+                
+                # Save
+                torch.save(ckpt, path)
                 
                 print(f"  📊 New best {metric_name}: {metric_value:.4f} (epoch {epoch}) → saved to {path.name}")
                 return True
             except Exception as e:
                 print(f"  ⚠️  Failed to save {path.name}: {e}")
+                import traceback
+                traceback.print_exc()
                 return False
         
         # Check if we have new best precision
