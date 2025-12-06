@@ -11,6 +11,14 @@ from pathlib import Path
 
 def analyze_checkpoint(checkpoint_path):
     """Analyze a YOLO checkpoint and return detailed structure info"""
+    checkpoint_path = Path(checkpoint_path)
+    
+    if not checkpoint_path.exists():
+        return {
+            'path': str(checkpoint_path),
+            'error': 'File not found'
+        }
+    
     try:
         ckpt = torch.load(checkpoint_path, map_location='cpu')
         
@@ -72,9 +80,11 @@ def analyze_checkpoint(checkpoint_path):
         return info
     
     except Exception as e:
+        import traceback
         return {
             'path': str(checkpoint_path),
-            'error': str(e)
+            'error': str(e),
+            'traceback': traceback.format_exc()
         }
 
 
@@ -88,6 +98,19 @@ def compare_checkpoints(good_checkpoint, bad_checkpoint):
     
     good_info = analyze_checkpoint(good_checkpoint)
     bad_info = analyze_checkpoint(bad_checkpoint)
+    
+    # Check for errors
+    if 'error' in good_info:
+        print(f"ERROR loading GOOD checkpoint: {good_info['error']}")
+        if 'traceback' in good_info:
+            print(good_info['traceback'])
+        return
+    
+    if 'error' in bad_info:
+        print(f"ERROR loading BAD checkpoint: {bad_info['error']}")
+        if 'traceback' in bad_info:
+            print(bad_info['traceback'])
+        return
     
     # Show basic info
     print(f"GOOD CHECKPOINT (reference):")
