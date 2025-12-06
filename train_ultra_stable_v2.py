@@ -192,7 +192,7 @@ def train_ultra_stable(args):
         # Training schedule
         'epochs': args.epochs,
         'batch': args.batch,
-        'imgsz': 768,
+        'imgsz': 768,  # YOLO will resize maintaining aspect ratio
         
         # Hardware
         'workers': args.workers,
@@ -230,7 +230,7 @@ def train_ultra_stable(args):
         # Model settings
         'pretrained': is_pretrained,
         'single_cls': False,
-        'rect': False,
+        'rect': True,  # Rectangular training - maintains aspect ratio (768×432 instead of 768×768)
         'resume': False,
         'freeze': None,
         
