@@ -45,8 +45,8 @@ class MultiCheckpointTracker:
         print(f"\n✓ Multi-checkpoint tracker initialized")
         print(f"  Will save: best.pt, best_prec.pt, best_rec.pt, last.pt")
     
-    def on_fit_epoch_end(self, trainer):
-        """Called at the end of each training epoch"""
+    def on_train_epoch_end(self, trainer):
+        """Called at the end of each training epoch AFTER YOLO saves checkpoints"""
         # Get current metrics
         metrics = trainer.metrics
         
@@ -58,13 +58,13 @@ class MultiCheckpointTracker:
         # Paths
         best_prec_path = self.weights_dir / 'best_prec.pt'
         best_rec_path = self.weights_dir / 'best_rec.pt'
+        last_path = self.weights_dir / 'last.pt'
         
         # Helper function to save checkpoint
         def save_checkpoint(path, metric_value, metric_name):
             """Save model checkpoint in YOLO format by copying last.pt"""
             try:
-                # Copy last.pt which was just saved by YOLO for this epoch
-                last_path = self.weights_dir / 'last.pt'
+                # Verify last.pt exists and was just updated
                 if not last_path.exists():
                     return False
                 
@@ -259,10 +259,10 @@ def train_ultra_stable(args):
     
     # Add callback for multi-checkpoint saving
     def epoch_end_callback(trainer):
-        checkpoint_tracker.on_fit_epoch_end(trainer)
+        checkpoint_tracker.on_train_epoch_end(trainer)
     
-    # Add the callback
-    model.add_callback('on_fit_epoch_end', epoch_end_callback)
+    # Add the callback - fires AFTER YOLO saves last.pt
+    model.add_callback('on_train_epoch_end', epoch_end_callback)
     
     print(f"✓ Registered callback for multi-checkpoint saving")
     print(f"  Callback will save best_prec.pt and best_rec.pt during training")
