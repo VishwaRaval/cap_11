@@ -175,7 +175,6 @@ def train_ultra_stable(args):
         'imgsz': 768,
         
         # Hardware
-        'device': args.device,
         'workers': args.workers,
         'cache': False,  # Don't cache (memory intensive)
         
@@ -392,8 +391,6 @@ def main():
                        help='Batch size (default: 64)')
     parser.add_argument('--patience', type=int, default=50,
                        help='Early stopping patience (default: 50)')
-    parser.add_argument('--device', type=str, default='0',
-                       help='CUDA device (default: 0)')
     parser.add_argument('--workers', type=int, default=4,
                        help='Dataloader workers (default: 4)')
     parser.add_argument('--hyp', type=str, default=None,
