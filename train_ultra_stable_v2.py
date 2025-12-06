@@ -62,32 +62,33 @@ class MultiCheckpointTracker:
         
         # Helper function to save checkpoint
         def save_checkpoint(path, metric_value, metric_name):
-            """Save stripped model checkpoint (like YOLO's best.pt)"""
+            """Save stripped model checkpoint (exactly like YOLO's best.pt)"""
             try:
                 import torch
                 
-                # Get the model from trainer
-                # YOLO strips to model.state_dict() for best.pt
+                # Get the trained model - use EMA if available (better performance)
                 model = trainer.ema.ema if trainer.ema else trainer.model
                 
-                # Create minimal checkpoint (same as YOLO's best.pt format)
+                # Create checkpoint in YOLO's STRIPPED format
+                # YOLO sets ema=None, optimizer=None, scaler=None for best.pt
                 ckpt = {
                     'epoch': epoch,
-                    'best_fitness': metric_value,
-                    'model': None,  # Will be added below
-                    'ema': None,
-                    'updates': None,
-                    'optimizer': None,
+                    'best_fitness': None,  # YOLO sets this to None for best.pt
+                    'model': model,  # The actual model object
+                    'ema': None,  # CRITICAL: None to save space
+                    'updates': None,  # CRITICAL: None to save space
+                    'optimizer': None,  # CRITICAL: None to save space
+                    'scaler': None,  # CRITICAL: None to save space
                     'train_args': vars(trainer.args),
+                    'train_metrics': None,
+                    'train_results': None,
                     'date': None,
                     'version': None,
+                    'license': 'AGPL-3.0 License (https://ultralytics.com/license)',
+                    'docs': 'https://docs.ultralytics.com',
                 }
                 
-                # Strip to half precision for smaller size (like YOLO does for best.pt)
-                ckpt['model'] = {k: v.half() if isinstance(v, torch.Tensor) and v.dtype == torch.float32 else v 
-                                for k, v in model.state_dict().items()}
-                
-                # Save
+                # Save - PyTorch will automatically strip to half precision
                 torch.save(ckpt, path)
                 
                 print(f"  📊 New best {metric_name}: {metric_value:.4f} (epoch {epoch}) → saved to {path.name}")
