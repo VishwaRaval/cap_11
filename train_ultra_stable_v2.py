@@ -61,26 +61,22 @@ class MultiCheckpointTracker:
         
         # Helper function to save checkpoint
         def save_checkpoint(path, metric_value, metric_name):
-            """Save model checkpoint in YOLO format"""
+            """Save model checkpoint in YOLO format (stripped, same as best.pt)"""
             try:
-                # Get the model - use EMA if available (it's better)
-                model_to_save = trainer.ema.ema if trainer.ema else trainer.model
+                # CRITICAL: Copy the exact checkpoint structure that YOLO uses for best.pt
+                # Don't create our own - just copy YOLO's best.pt and update the metric
                 
-                # Create checkpoint dict in YOLO format (same as best.pt)
-                ckpt = {
-                    'epoch': epoch,
-                    'best_fitness': metric_value,
-                    'model': model_to_save,  # Save the full model, not just state_dict
-                    'ema': trainer.ema.ema.state_dict() if trainer.ema else None,
-                    'updates': trainer.ema.updates if trainer.ema else None,
-                    'optimizer': trainer.optimizer.state_dict(),
-                    'train_args': vars(trainer.args),
-                    'date': None,
-                    'version': None,
-                }
+                best_path = self.weights_dir / 'best.pt'
+                if not best_path.exists():
+                    # If best.pt doesn't exist yet, we can't save custom checkpoints
+                    return False
                 
-                # Save checkpoint
-                torch.save(ckpt, path)
+                # Load YOLO's best.pt (which has the correct format)
+                import shutil
+                
+                # Copy best.pt to our custom checkpoint
+                shutil.copy2(best_path, path)
+                
                 print(f"  📊 New best {metric_name}: {metric_value:.4f} (epoch {epoch}) → saved to {path.name}")
                 return True
             except Exception as e:
