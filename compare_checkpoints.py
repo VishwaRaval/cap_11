@@ -20,7 +20,7 @@ def analyze_checkpoint(checkpoint_path):
         }
     
     try:
-        ckpt = torch.load(checkpoint_path, map_location='cpu')
+        ckpt = torch.load(checkpoint_path, map_location='cpu', weights_only=False)
         
         info = {
             'path': str(checkpoint_path),

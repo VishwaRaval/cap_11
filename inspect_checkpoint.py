@@ -11,7 +11,7 @@ from pathlib import Path
 
 def inspect_checkpoint(path):
     """Show detailed structure of a checkpoint"""
-    ckpt = torch.load(path, map_location='cpu')
+    ckpt = torch.load(path, map_location='cpu', weights_only=False)
     
     print(f"=" * 80)
     print(f"Checkpoint: {path.name}")
