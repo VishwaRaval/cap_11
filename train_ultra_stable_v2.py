@@ -215,8 +215,8 @@ def train_ultra_stable(args):
         # Validation
         'val': True,
         'plots': True,
-        'save': True,
-        'save_period': -1,  # Only save best (YOLO will save last.pt and best.pt)
+        'save': False,  # Don't save validation predictions (prevents 1000s of files)
+        'save_period': -1,  # Only save best checkpoint
         
         # Stability
         'deterministic': True,
@@ -270,6 +270,9 @@ def train_ultra_stable(args):
     # Add the callback
     model.add_callback('on_fit_epoch_end', epoch_end_callback)
     
+    print(f"✓ Registered callback for multi-checkpoint saving")
+    print(f"  Callback will save best_prec.pt and best_rec.pt during training")
+    
     # Start training
     print("🚀 Starting ultra-stable training with multi-checkpoint saving...\n")
     
@@ -284,6 +287,7 @@ def train_ultra_stable(args):
     checkpoints = ['best.pt', 'best_prec.pt', 'best_rec.pt', 'last.pt']
     
     print(f"\n💾 SAVED CHECKPOINTS:")
+    missing_checkpoints = []
     for ckpt in checkpoints:
         ckpt_path = weights_dir / ckpt
         if ckpt_path.exists():
@@ -291,6 +295,17 @@ def train_ultra_stable(args):
             print(f"  ✓ {ckpt:15s} ({size_mb:.1f} MB)")
         else:
             print(f"  ✗ {ckpt:15s} (missing)")
+            missing_checkpoints.append(ckpt)
+    
+    # Warn if any checkpoints are missing
+    if missing_checkpoints:
+        print(f"\n⚠️  WARNING: {len(missing_checkpoints)} checkpoint(s) missing!")
+        print(f"  Missing: {', '.join(missing_checkpoints)}")
+        if 'best_prec.pt' in missing_checkpoints or 'best_rec.pt' in missing_checkpoints:
+            print(f"  This means the callback may not have fired properly.")
+            print(f"  Check that metrics/precision(B) and metrics/recall(B) had values > 0")
+    else:
+        print(f"\n✅ All 4 checkpoints saved successfully!")
     
     # Post-process metrics
     post_process_metrics(results_dir)
