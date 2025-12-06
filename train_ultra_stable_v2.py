@@ -198,7 +198,7 @@ def train_ultra_stable(args):
         # Output paths (ABSOLUTE)
         'project': str(output_base),
         'name': args.name,
-        'exist_ok': False,
+        'exist_ok': True,  # Allow reusing same directory
         
         # Optimizer - AdamW for better convergence
         'optimizer': 'AdamW',
