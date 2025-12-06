@@ -41,6 +41,7 @@ def test_checkpoint_saving():
         'epochs': 5,
         'batch': 16,
         'patience': 50,
+        'workers': 4,
         'hyp': 'hyp_precision_focus_v1.yaml',
         'name': 'checkpoint_test'
     }
