@@ -215,7 +215,7 @@ def train_ultra_stable(args):
         # Validation
         'val': True,
         'plots': True,
-        'save': False,  # Don't save validation predictions (prevents 1000s of files)
+        'save': True,  # Required for best.pt and last.pt to be saved
         'save_period': -1,  # Only save best checkpoint
         
         # Stability
