@@ -22,6 +22,7 @@ from pathlib import Path
 import pandas as pd
 import os
 import shutil
+import torch
 from ultralytics import YOLO
 
 
@@ -55,27 +56,43 @@ class MultiCheckpointTracker:
         epoch = trainer.epoch
         
         # Paths
-        last_path = self.weights_dir / 'last.pt'
-        best_path = self.weights_dir / 'best.pt'  # YOLO's default (mAP50)
         best_prec_path = self.weights_dir / 'best_prec.pt'
         best_rec_path = self.weights_dir / 'best_rec.pt'
         
-        # Save last.pt (always)
-        # YOLO already saves this, just ensure it exists
+        # Helper function to save checkpoint
+        def save_checkpoint(path, metric_value, metric_name):
+            """Save model checkpoint in YOLO format"""
+            try:
+                # Get the model state - use EMA if available (it's better)
+                model_to_save = trainer.ema.ema if trainer.ema else trainer.model
+                
+                # Create checkpoint dict in YOLO format
+                ckpt = {
+                    'epoch': epoch,
+                    'best_fitness': metric_value,
+                    'model': model_to_save.state_dict(),
+                    'train_args': vars(trainer.args),
+                    'date': None,
+                    'version': None,
+                }
+                
+                # Save checkpoint
+                torch.save(ckpt, path)
+                print(f"  📊 New best {metric_name}: {metric_value:.4f} (epoch {epoch}) → saved to {path.name}")
+                return True
+            except Exception as e:
+                print(f"  ⚠️  Failed to save {path.name}: {e}")
+                return False
         
         # Check if we have new best precision
         if precision > self.best_precision:
             self.best_precision = precision
-            if last_path.exists():
-                shutil.copy2(last_path, best_prec_path)
-                print(f"  📊 New best precision: {precision:.4f} (epoch {epoch}) → saved to best_prec.pt")
+            save_checkpoint(best_prec_path, precision, 'precision')
         
         # Check if we have new best recall
         if recall > self.best_recall:
             self.best_recall = recall
-            if last_path.exists():
-                shutil.copy2(last_path, best_rec_path)
-                print(f"  📊 New best recall: {recall:.4f} (epoch {epoch}) → saved to best_rec.pt")
+            save_checkpoint(best_rec_path, recall, 'recall')
         
         # Track mAP50 (YOLO does this by default, but we track for logging)
         if map50 > self.best_map50:
