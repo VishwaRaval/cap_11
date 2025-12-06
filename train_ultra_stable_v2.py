@@ -63,14 +63,17 @@ class MultiCheckpointTracker:
         def save_checkpoint(path, metric_value, metric_name):
             """Save model checkpoint in YOLO format"""
             try:
-                # Get the model state - use EMA if available (it's better)
+                # Get the model - use EMA if available (it's better)
                 model_to_save = trainer.ema.ema if trainer.ema else trainer.model
                 
-                # Create checkpoint dict in YOLO format
+                # Create checkpoint dict in YOLO format (same as best.pt)
                 ckpt = {
                     'epoch': epoch,
                     'best_fitness': metric_value,
-                    'model': model_to_save.state_dict(),
+                    'model': model_to_save,  # Save the full model, not just state_dict
+                    'ema': trainer.ema.ema.state_dict() if trainer.ema else None,
+                    'updates': trainer.ema.updates if trainer.ema else None,
+                    'optimizer': trainer.optimizer.state_dict(),
                     'train_args': vars(trainer.args),
                     'date': None,
                     'version': None,
