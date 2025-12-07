@@ -62,7 +62,7 @@ This capstone project developed a production-ready underwater fish detection sys
 .
 ├── README.md                                    # This file
 ├── requirements.txt                             # Python dependencies
-├── UNDERWATER_FISH_DETECTION_PROJECT_REPORT.md  # Complete technical report
+├── FISH_DETECTION_PROJECT_REPORT.md  # Complete technical report
 │
 ├── 📂 Training Scripts (Active)
 │   ├── train_ultra_stable.py                   # Ultra-conservative training (best approach)
@@ -322,7 +322,7 @@ cos_lr: True          # Cosine LR scheduling
 ## 📚 Documentation
 
 ### Main Reports
-- **[Complete Project Report](UNDERWATER_FISH_DETECTION_PROJECT_REPORT.md)** - 1,900+ line technical report covering:
+- **[Complete Project Report](FISH_DETECTION_PROJECT_REPORT.md)** - 1,900+ line technical report covering:
   - Dataset analysis and challenges
   - 60+ experiment results and analysis
   - Design decisions and rationale
@@ -332,7 +332,6 @@ cos_lr: True          # Cosine LR scheduling
 
 ### Guides
 - **[Dataset Labeling Guide](DATASET_LABELING_GUIDE.md)** - Complete instructions for 3-mode labeling system
-- **[Report Update Summary](REPORT_UPDATE_SUMMARY.md)** - Changelog of final results
 
 ### Results Files
 - `definitive_results.txt` - Final model rankings
