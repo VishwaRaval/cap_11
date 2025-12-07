@@ -272,8 +272,16 @@ class FishEnsemble:
         
         image_files = list(image_dir.glob('*.jpg')) + list(image_dir.glob('*.png'))
         
-        all_true = []
-        all_pred = []
+        # Track metrics per image
+        total_images = 0
+        total_correct = 0
+        total_predicted = 0
+        total_ground_truth = 0
+        
+        # Track per-class metrics
+        class_tp = {0: 0, 1: 0, 2: 0}  # True positives
+        class_fp = {0: 0, 1: 0, 2: 0}  # False positives
+        class_fn = {0: 0, 1: 0, 2: 0}  # False negatives
         
         print(f"\nEvaluating ensemble on {len(image_files)} images...")
         
@@ -283,22 +291,90 @@ class FishEnsemble:
             if not label_path.exists():
                 continue
             
+            # Read ground truth classes
+            gt_classes = []
             with open(label_path, 'r') as f:
-                gt_classes = [int(line.split()[0]) for line in f.readlines()]
+                for line in f.readlines():
+                    parts = line.strip().split()
+                    if len(parts) >= 5:
+                        gt_classes.append(int(parts[0]))
+            
+            if len(gt_classes) == 0:
+                continue
             
             # Get predictions
             pred = self.predict(str(img_path), method=method)
             pred_classes = pred['classes'].astype(int).tolist()
             
-            all_true.extend(gt_classes)
-            all_pred.extend(pred_classes)
+            total_images += 1
+            total_ground_truth += len(gt_classes)
+            total_predicted += len(pred_classes)
+            
+            # Convert to sets for matching (simple approach)
+            # For each ground truth, try to find a matching prediction
+            gt_matched = set()
+            pred_matched = set()
+            
+            # Match predictions to ground truth (by class only, ignoring bbox)
+            for gt_idx, gt_cls in enumerate(gt_classes):
+                for pred_idx, pred_cls in enumerate(pred_classes):
+                    if pred_idx not in pred_matched and gt_cls == pred_cls:
+                        # Match found
+                        gt_matched.add(gt_idx)
+                        pred_matched.add(pred_idx)
+                        class_tp[gt_cls] += 1
+                        total_correct += 1
+                        break
+            
+            # Count false negatives (unmatched ground truth)
+            for gt_idx, gt_cls in enumerate(gt_classes):
+                if gt_idx not in gt_matched:
+                    class_fn[gt_cls] += 1
+            
+            # Count false positives (unmatched predictions)
+            for pred_idx, pred_cls in enumerate(pred_classes):
+                if pred_idx not in pred_matched:
+                    class_fp[pred_cls] += 1
         
         # Calculate metrics
-        from sklearn.metrics import accuracy_score, precision_recall_fscore_support, confusion_matrix
+        # Overall accuracy (correct detections / total ground truth)
+        accuracy = total_correct / total_ground_truth if total_ground_truth > 0 else 0
         
-        accuracy = accuracy_score(all_true, all_pred)
-        precision, recall, f1, _ = precision_recall_fscore_support(all_true, all_pred, average='weighted', zero_division=0)
-        cm = confusion_matrix(all_true, all_pred)
+        # Per-class precision and recall
+        precisions = []
+        recalls = []
+        f1_scores = []
+        
+        for cls in [0, 1, 2]:
+            tp = class_tp[cls]
+            fp = class_fp[cls]
+            fn = class_fn[cls]
+            
+            precision = tp / (tp + fp) if (tp + fp) > 0 else 0
+            recall = tp / (tp + fn) if (tp + fn) > 0 else 0
+            f1 = 2 * (precision * recall) / (precision + recall) if (precision + recall) > 0 else 0
+            
+            precisions.append(precision)
+            recalls.append(recall)
+            f1_scores.append(f1)
+        
+        # Weighted average (by ground truth count)
+        class_counts = [class_tp[c] + class_fn[c] for c in [0, 1, 2]]
+        total_count = sum(class_counts)
+        
+        if total_count > 0:
+            weights = [c / total_count for c in class_counts]
+            precision = sum(p * w for p, w in zip(precisions, weights))
+            recall = sum(r * w for r, w in zip(recalls, weights))
+            f1 = sum(f * w for f, w in zip(f1_scores, weights))
+        else:
+            precision = recall = f1 = 0
+        
+        # Create confusion matrix (simplified)
+        cm = np.zeros((3, 3), dtype=int)
+        for cls in [0, 1, 2]:
+            cm[cls, cls] = class_tp[cls]
+            # Note: This is simplified - a full confusion matrix would require box-level matching
         
         return {
             'accuracy': accuracy,
@@ -306,7 +382,14 @@ class FishEnsemble:
             'recall': recall,
             'f1': f1,
             'confusion_matrix': cm,
-            'num_samples': len(all_true)
+            'num_samples': total_ground_truth,
+            'num_images': total_images,
+            'per_class_metrics': {
+                'precision': precisions,
+                'recall': recalls,
+                'f1': f1_scores,
+                'class_names': ['Grunt Fish', 'Parrot Fish', 'Surgeon Fish']
+            }
         }
 
 
