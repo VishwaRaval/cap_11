@@ -31,6 +31,14 @@ from collections import defaultdict
 def validate_single_model(model_path, data_yaml, split, imgsz=768, batch=16):
     """Validate a single model and return metrics"""
     try:
+        # Load checkpoint to get epoch info
+        import torch
+        try:
+            ckpt = torch.load(str(model_path), map_location='cpu', weights_only=False)
+            epoch = ckpt.get('epoch', 'unknown')
+        except:
+            epoch = 'unknown'
+        
         model = YOLO(str(model_path))
         results = model.val(
             data=str(data_yaml),
@@ -72,10 +80,17 @@ def validate_single_model(model_path, data_yaml, split, imgsz=768, batch=16):
             'size_mb': size_mb,
             'path': str(model_path),
             'checkpoint_type': checkpoint_name,
-            'experiment': exp_name
+            'experiment': exp_name,
+            'epoch': epoch
         }
     except Exception as e:
-        print(f"⚠ Error validating {model_path}: {e}")
+        checkpoint_name = model_path.stem
+        # Check if it's a broken best_prec.pt or best_rec.pt
+        if 'best_prec' in checkpoint_name or 'best_rec' in checkpoint_name:
+            print(f"⚠ Skipping {model_path.name}: Corrupted checkpoint (old format)")
+            print(f"  → Use best.pt from this experiment instead")
+        else:
+            print(f"⚠ Error validating {model_path}: {e}")
         return None
 
 
@@ -88,9 +103,9 @@ def print_experiment_comparison(exp_metrics):
         return
     
     print(f"\n📊 Experiment: {exp_name}")
-    print("─" * 90)
-    print(f"{'Checkpoint':<15} {'Precision':>9} {'Recall':>9} {'F1':>9} {'mAP50':>9} {'AvgAcc':>9} {'Size':>8}")
-    print("─" * 90)
+    print("─" * 100)
+    print(f"{'Checkpoint':<15} {'Epoch':>6} {'Precision':>9} {'Recall':>9} {'F1':>9} {'mAP50':>9} {'AvgAcc':>9} {'Size':>8}")
+    print("─" * 100)
     
     # Sort by checkpoint type priority
     priority = {'best': 0, 'best_prec': 1, 'best_rec': 2, 'last': 3}
@@ -101,8 +116,9 @@ def print_experiment_comparison(exp_metrics):
     for m in sorted_checkpoints:
         ckpt_type = m['checkpoint_type']
         marker = "⭐" if m['avg_acc'] == best_avg_acc else "  "
+        epoch_str = str(m.get('epoch', '?'))
         
-        print(f"{marker} {ckpt_type:<13} {m['precision']*100:>8.2f}% {m['recall']*100:>8.2f}% "
+        print(f"{marker} {ckpt_type:<13} {epoch_str:>6} {m['precision']*100:>8.2f}% {m['recall']*100:>8.2f}% "
               f"{m['f1']*100:>8.2f}% {m['mAP50']*100:>8.2f}% {m['avg_acc']*100:>8.2f}% {m['size_mb']:>7.1f}MB")
     
     # Recommendation
@@ -221,9 +237,9 @@ def main():
     
     parser.add_argument('--data', type=str, required=True,
                        help='Path to data.yaml file')
-    parser.add_argument('--split', type=str, default='test',
-                       choices=['train', 'valid', 'test'],
-                       help='Dataset split (default: test)')
+    parser.add_argument('--split', type=str, default='val',
+                       choices=['train', 'val', 'test'],
+                       help='Dataset split (default: val - matches training validation)')
     parser.add_argument('--imgsz', type=int, default=768,
                        help='Input image size (default: 768)')
     parser.add_argument('--batch', type=int, default=16,
