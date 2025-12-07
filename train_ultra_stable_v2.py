@@ -69,12 +69,16 @@ class MultiCheckpointTracker:
                 # Get the trained model - use EMA if available (better performance)
                 model = trainer.ema.ema if trainer.ema else trainer.model
                 
+                # CRITICAL: Convert to half precision (like YOLO does)
+                # This reduces file size from 36 MB to 18 MB
+                model_half = model.half()
+                
                 # Create checkpoint in YOLO's STRIPPED format
                 # YOLO sets ema=None, optimizer=None, scaler=None for best.pt
                 ckpt = {
                     'epoch': epoch,
                     'best_fitness': None,  # YOLO sets this to None for best.pt
-                    'model': model,  # The actual model object
+                    'model': model_half,  # Half precision model
                     'ema': None,  # CRITICAL: None to save space
                     'updates': None,  # CRITICAL: None to save space
                     'optimizer': None,  # CRITICAL: None to save space
@@ -88,7 +92,7 @@ class MultiCheckpointTracker:
                     'docs': 'https://docs.ultralytics.com',
                 }
                 
-                # Save - PyTorch will automatically strip to half precision
+                # Save
                 torch.save(ckpt, path)
                 
                 print(f"  📊 New best {metric_name}: {metric_value:.4f} (epoch {epoch}) → saved to {path.name}")
@@ -296,6 +300,66 @@ def train_ultra_stable(args):
     print("\n" + "=" * 80)
     print("✓ TRAINING COMPLETE!")
     print("=" * 80)
+    
+    # CRITICAL: Strip best.pt and last.pt to match our custom checkpoints
+    weights_dir = results_dir / 'weights'
+    
+    print("\n🔧 Stripping best.pt and last.pt to reduce file size...")
+    
+    for ckpt_name in ['best.pt', 'last.pt']:
+        ckpt_path = weights_dir / ckpt_name
+        if ckpt_path.exists():
+            try:
+                # Load the full checkpoint
+                ckpt = torch.load(ckpt_path, map_location='cpu', weights_only=False)
+                
+                # Get model (might be in 'model' or 'ema' key)
+                if ckpt.get('model') is not None:
+                    model_obj = ckpt['model']
+                elif ckpt.get('ema') is not None:
+                    model_obj = ckpt['ema']
+                else:
+                    print(f"  ⚠️  Could not find model in {ckpt_name}")
+                    continue
+                
+                # Convert to half precision
+                model_obj = model_obj.half()
+                
+                # Create stripped checkpoint (like YOLO's exported format)
+                stripped_ckpt = {
+                    'epoch': ckpt.get('epoch'),
+                    'best_fitness': None,
+                    'model': model_obj,
+                    'ema': None,
+                    'updates': None,
+                    'optimizer': None,
+                    'scaler': None,
+                    'train_args': ckpt.get('train_args'),
+                    'train_metrics': None,
+                    'train_results': None,
+                    'date': ckpt.get('date'),
+                    'version': ckpt.get('version'),
+                    'license': ckpt.get('license', 'AGPL-3.0 License (https://ultralytics.com/license)'),
+                    'docs': ckpt.get('docs', 'https://docs.ultralytics.com'),
+                    'git': ckpt.get('git'),
+                }
+                
+                # Get original size
+                orig_size = ckpt_path.stat().st_size / (1024 * 1024)
+                
+                # Save stripped version
+                torch.save(stripped_ckpt, ckpt_path)
+                
+                # Get new size
+                new_size = ckpt_path.stat().st_size / (1024 * 1024)
+                
+                print(f"  ✓ {ckpt_name}: {orig_size:.1f} MB → {new_size:.1f} MB (saved {orig_size - new_size:.1f} MB)")
+            
+            except Exception as e:
+                print(f"  ⚠️  Failed to strip {ckpt_name}: {e}")
+    
+    print("✓ Checkpoint stripping complete")
+    print()
     
     # Verify all checkpoints exist
     weights_dir = results_dir / 'weights'
