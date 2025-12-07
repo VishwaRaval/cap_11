@@ -201,10 +201,23 @@ def run_ensemble(args):
     print(f"\n{'='*80}")
     print("RESULTS")
     print(f"{'='*80}")
-    print(f"Accuracy:  {metrics['accuracy']*100:.2f}%")
-    print(f"Precision: {metrics['precision']*100:.2f}%")
-    print(f"Recall:    {metrics['recall']*100:.2f}%")
-    print(f"F1 Score:  {metrics['f1']*100:.2f}%")
+    print(f"Images processed: {metrics['num_images']}")
+    print(f"Total detections: {metrics['num_samples']}")
+    print(f"\nOverall Metrics:")
+    print(f"  Accuracy:  {metrics['accuracy']*100:.2f}%")
+    print(f"  Precision: {metrics['precision']*100:.2f}%")
+    print(f"  Recall:    {metrics['recall']*100:.2f}%")
+    print(f"  F1 Score:  {metrics['f1']*100:.2f}%")
+    
+    # Show per-class metrics
+    if 'per_class_metrics' in metrics:
+        print(f"\nPer-Class Metrics:")
+        for i, class_name in enumerate(metrics['per_class_metrics']['class_names']):
+            prec = metrics['per_class_metrics']['precision'][i] * 100
+            rec = metrics['per_class_metrics']['recall'][i] * 100
+            f1 = metrics['per_class_metrics']['f1'][i] * 100
+            print(f"  {class_name:15s}: Precision={prec:5.1f}%  Recall={rec:5.1f}%  F1={f1:5.1f}%")
+    
     print(f"\nResults saved to: {args.output}")
     
     # Check if we hit 70% target
