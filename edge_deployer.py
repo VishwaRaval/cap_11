@@ -11,6 +11,8 @@ from ultralytics import YOLO
 import json
 import time
 import os
+from typing import Dict, List
+from typing import Dict, List
 
 class EdgeDeployer:
     """Deploy YOLO models to edge devices"""
