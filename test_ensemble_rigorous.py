@@ -1,19 +1,48 @@
 #!/usr/bin/env python3
 """
 Test ensemble with rigorous IoU-based evaluation
-This is the REAL test of your 88.64% claim
+This is the REAL test of your ensemble results
 """
 
 import sys
-sys.path.append('.')
+from pathlib import Path
+
+# Add current directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent))
 
 from ensemble_predictor import FishEnsemble
-from rigorous_eval import calculate_iou, yolo_to_xyxy
 import numpy as np
-from pathlib import Path
 from tqdm import tqdm
 import json
 import cv2
+
+
+def calculate_iou(box1, box2):
+    """Calculate IoU between two boxes [x1, y1, x2, y2]"""
+    x1 = max(box1[0], box2[0])
+    y1 = max(box1[1], box2[1])
+    x2 = min(box1[2], box2[2])
+    y2 = min(box1[3], box2[3])
+    
+    intersection = max(0, x2 - x1) * max(0, y2 - y1)
+    area1 = (box1[2] - box1[0]) * (box1[3] - box1[1])
+    area2 = (box2[2] - box2[0]) * (box2[3] - box2[1])
+    union = area1 + area2 - intersection
+    
+    return intersection / union if union > 0 else 0
+
+
+def yolo_to_xyxy(yolo_box, img_width, img_height):
+    """Convert YOLO format [x_center, y_center, width, height] to [x1, y1, x2, y2]"""
+    x_center, y_center, width, height = yolo_box
+    
+    x1 = (x_center - width / 2) * img_width
+    y1 = (y_center - height / 2) * img_height
+    x2 = (x_center + width / 2) * img_width
+    y2 = (y_center + height / 2) * img_height
+    
+    return [x1, y1, x2, y2]
+
 
 def test_ensemble_rigorous(model_paths, image_dir, labels_dir, 
                           weights=None, method='wbf',
@@ -39,7 +68,16 @@ def test_ensemble_rigorous(model_paths, image_dir, labels_dir,
     
     image_dir = Path(image_dir)
     labels_dir = Path(labels_dir)
+    
+    # Get all images
     image_files = sorted(list(image_dir.glob('*.jpg')) + list(image_dir.glob('*.png')))
+    
+    if len(image_files) == 0:
+        print(f"\n❌ ERROR: No images found in {image_dir}")
+        print(f"   Please check the path!")
+        return
+    
+    print(f"\nFound {len(image_files)} images")
     
     # Track metrics
     class_tp = {0: 0, 1: 0, 2: 0}
@@ -47,7 +85,9 @@ def test_ensemble_rigorous(model_paths, image_dir, labels_dir,
     class_fn = {0: 0, 1: 0, 2: 0}
     class_gt_count = {0: 0, 1: 0, 2: 0}
     
-    print(f"\nProcessing {len(image_files)} images...")
+    processed_images = 0
+    
+    print(f"\nProcessing images...")
     
     for img_path in tqdm(image_files):
         # Get ground truth
@@ -119,13 +159,21 @@ def test_ensemble_rigorous(model_paths, image_dir, labels_dir,
         for gt_idx in range(len(gt_boxes)):
             if gt_idx not in gt_matched:
                 class_fn[gt_classes[gt_idx]] += 1
+        
+        processed_images += 1
+    
+    if processed_images == 0:
+        print(f"\n❌ ERROR: No images were processed!")
+        print(f"   Check that labels exist in {labels_dir}")
+        return
     
     # Calculate metrics
     class_names = ['Grunt Fish', 'Parrot Fish', 'Surgeon Fish']
     
     print(f"\n{'='*80}")
     print("RESULTS")
-    print(f"{'='*80}\n")
+    print(f"{'='*80}")
+    print(f"Processed: {processed_images} images")
     
     total_tp = sum(class_tp.values())
     total_fp = sum(class_fp.values())
@@ -136,7 +184,7 @@ def test_ensemble_rigorous(model_paths, image_dir, labels_dir,
     overall_recall = total_tp / (total_tp + total_fn) if (total_tp + total_fn) > 0 else 0
     overall_f1 = 2 * (overall_precision * overall_recall) / (overall_precision + overall_recall) if (overall_precision + overall_recall) > 0 else 0
     
-    print(f"Overall Metrics (IoU >= {iou_threshold}):")
+    print(f"\nOverall Metrics (IoU >= {iou_threshold}):")
     print(f"  Precision: {overall_precision*100:.2f}%")
     print(f"  Recall:    {overall_recall*100:.2f}%")
     print(f"  F1 Score:  {overall_f1*100:.2f}%")
@@ -176,6 +224,7 @@ def test_ensemble_rigorous(model_paths, image_dir, labels_dir,
         'method': method,
         'iou_threshold': iou_threshold,
         'conf_threshold': conf_threshold,
+        'processed_images': processed_images,
         'overall': {
             'precision': float(overall_precision),
             'recall': float(overall_recall),
@@ -214,22 +263,67 @@ def test_ensemble_rigorous(model_paths, image_dir, labels_dir,
 
 if __name__ == "__main__":
     import argparse
+    import yaml
     
-    parser = argparse.ArgumentParser()
-    parser.add_argument('--models', nargs='+', required=True)
-    parser.add_argument('--images', required=True)
-    parser.add_argument('--labels', required=True)
-    parser.add_argument('--weights', nargs='+', type=float, default=None)
-    parser.add_argument('--method', choices=['wbf', 'voting'], default='wbf')
-    parser.add_argument('--conf', type=float, default=0.25)
-    parser.add_argument('--iou', type=float, default=0.5)
+    parser = argparse.ArgumentParser(description='Rigorous ensemble evaluation with IoU matching')
+    parser.add_argument('--models', nargs='+', required=True, help='Model .pt files')
+    
+    # Support both --data (YAML) and --images/--labels (directories)
+    data_group = parser.add_mutually_exclusive_group(required=True)
+    data_group.add_argument('--data', help='Path to data.yaml file')
+    data_group.add_argument('--images', help='Path to test images directory')
+    
+    parser.add_argument('--labels', help='Path to test labels directory (required if using --images)')
+    parser.add_argument('--weights', nargs='+', type=float, default=None, help='Model weights')
+    parser.add_argument('--method', choices=['wbf', 'voting'], default='wbf', help='Ensemble method')
+    parser.add_argument('--conf', type=float, default=0.25, help='Confidence threshold')
+    parser.add_argument('--iou', type=float, default=0.5, help='IoU threshold for matching')
     
     args = parser.parse_args()
     
+    # Parse data paths
+    if args.data:
+        print(f"Loading dataset info from: {args.data}")
+        with open(args.data, 'r') as f:
+            data_config = yaml.safe_load(f)
+        
+        yaml_dir = Path(args.data).parent
+        
+        # Try to find test/val split
+        if 'test' in data_config:
+            dataset_path = data_config['test']
+        elif 'val' in data_config:
+            dataset_path = data_config['val']
+        else:
+            raise ValueError("data.yaml must contain 'test' or 'val' key")
+        
+        # Handle relative paths
+        if not Path(dataset_path).is_absolute():
+            dataset_path = yaml_dir / dataset_path
+        
+        # Assume standard YOLO structure
+        if Path(dataset_path).is_dir():
+            if (Path(dataset_path) / 'images').exists():
+                image_dir = str(Path(dataset_path) / 'images')
+                label_dir = str(Path(dataset_path) / 'labels')
+            else:
+                image_dir = str(dataset_path)
+                label_dir = str(Path(dataset_path).parent / 'labels')
+        else:
+            raise ValueError(f"Dataset path not found: {dataset_path}")
+        
+        print(f"  Images: {image_dir}")
+        print(f"  Labels: {label_dir}")
+    else:
+        if not args.labels:
+            raise ValueError("--labels is required when using --images")
+        image_dir = args.images
+        label_dir = args.labels
+    
     test_ensemble_rigorous(
         model_paths=args.models,
-        image_dir=args.images,
-        labels_dir=args.labels,
+        image_dir=image_dir,
+        labels_dir=label_dir,
         weights=args.weights,
         method=args.method,
         conf_threshold=args.conf,
