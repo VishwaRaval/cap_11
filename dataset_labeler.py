@@ -83,8 +83,7 @@ class FishLabeler:
                 width = (xyxy[2] - xyxy[0]) / img_width
                 height = (xyxy[3] - xyxy[1]) / img_height
                 
-                f.write(f"{cls} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}
-")
+                f.write(f"{cls} {x_center:.6f} {y_center:.6f} {width:.6f} {height:.6f}\n")
                 
                 detections.append({
                     'class': cls,

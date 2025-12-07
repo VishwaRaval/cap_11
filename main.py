@@ -47,10 +47,16 @@ Examples:
                                 help='Paths to model .pt files')
     ensemble_parser.add_argument('--weights', nargs='+', type=float, default=None,
                                 help='Weights for each model (must sum to 1.0)')
-    ensemble_parser.add_argument('--dataset', required=True,
-                                help='Path to test dataset images directory')
-    ensemble_parser.add_argument('--labels', required=True,
-                                help='Path to test dataset labels directory')
+    
+    # Support both --data (YAML) and --dataset/--labels (directories)
+    data_group = ensemble_parser.add_mutually_exclusive_group(required=True)
+    data_group.add_argument('--data',
+                           help='Path to data.yaml file (contains paths to images and labels)')
+    data_group.add_argument('--dataset',
+                           help='Path to test dataset images directory')
+    
+    ensemble_parser.add_argument('--labels',
+                                help='Path to test dataset labels directory (required if using --dataset)')
     ensemble_parser.add_argument('--method', choices=['wbf', 'voting'], default='wbf',
                                 help='Ensemble method')
     ensemble_parser.add_argument('--conf', type=float, default=0.25,
@@ -113,6 +119,51 @@ def run_ensemble(args):
     print("ENSEMBLE PREDICTION")
     print(f"{'='*80}\n")
     
+    # Parse data paths from YAML or direct arguments
+    if args.data:
+        import yaml
+        print(f"Loading dataset info from: {args.data}")
+        with open(args.data, 'r') as f:
+            data_config = yaml.safe_load(f)
+        
+        # Extract paths from YAML
+        # Support both absolute paths and paths relative to YAML location
+        yaml_dir = Path(args.data).parent
+        
+        # Try to find test/val split
+        if 'test' in data_config:
+            dataset_path = data_config['test']
+        elif 'val' in data_config:
+            dataset_path = data_config['val']
+        else:
+            raise ValueError("data.yaml must contain 'test' or 'val' key")
+        
+        # Handle relative paths
+        if not Path(dataset_path).is_absolute():
+            dataset_path = yaml_dir / dataset_path
+        
+        # Assume standard YOLO structure: images/ and labels/ directories
+        if Path(dataset_path).is_dir():
+            # If it's a directory, look for images and labels subdirs
+            if (Path(dataset_path) / 'images').exists():
+                image_dir = str(Path(dataset_path) / 'images')
+                label_dir = str(Path(dataset_path) / 'labels')
+            else:
+                # Assume it's the images directory
+                image_dir = str(dataset_path)
+                # Infer labels directory
+                label_dir = str(Path(dataset_path).parent / 'labels')
+        else:
+            raise ValueError(f"Dataset path not found: {dataset_path}")
+        
+        print(f"  Images: {image_dir}")
+        print(f"  Labels: {label_dir}")
+    else:
+        if not args.labels:
+            raise ValueError("--labels is required when using --dataset")
+        image_dir = args.dataset
+        label_dir = args.labels
+    
     # Create ensemble
     ensemble = FishEnsemble(
         model_paths=args.models,
@@ -123,8 +174,8 @@ def run_ensemble(args):
     
     # Evaluate
     metrics = ensemble.evaluate_dataset(
-        image_dir=args.dataset,
-        labels_dir=args.labels,
+        image_dir=image_dir,
+        labels_dir=label_dir,
         method=args.method
     )
     
