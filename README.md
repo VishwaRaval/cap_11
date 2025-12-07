@@ -530,10 +530,10 @@ If you use this work in your research, please cite:
 ```bibtex
 @misc{underwater_fish_yolov11_2024,
   title={Underwater Fish Detection with YOLOv11: Achieving 70% Accuracy Through Ensemble Methods},
-  author={[Your Name]},
-  year={2024},
-  note={Capstone Project - [University Name]},
-  howpublished={\url{https://github.com/yourusername/underwater-fish-detection}}
+  author={[Amaan Mansuri, Vishwa Raval and Shravan Khunti]},
+  year={2025},
+  note={Capstone Project - [New York University | BlueBOT | UNDP]},
+  howpublished={\url{https://github.com/VishwaRaval/cap_11}}
 }
 ```
 
@@ -559,10 +559,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ## 👥 Author
 
-**[Your Name]**
-- University: [University Name]
-- Program: [Program Name]
-- Year: 2024
+**[Amaan Mansuri, Vishwa Raval and Shravan Khunti]**
+- University: [New York University]
+- Program: [Masters in Data Science]
+- Year: 2025
 - Capstone Project
 
 ---
@@ -572,7 +572,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - **Ultralytics** for the excellent YOLOv11 framework
 - **Roboflow** for dataset preprocessing tools
 - **Weights & Biases** for experiment tracking
-- **Advisors**: [Advisor names] for guidance and feedback
+- **Advisors**: [Antonio Hollingsworth] for guidance and feedback
 - **Dataset**: [Dataset source/provider if applicable]
 
 ---
@@ -580,18 +580,17 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## 📞 Contact
 
 For questions or collaborations:
-- Email: your.email@university.edu
-- LinkedIn: [Your LinkedIn]
-- GitHub: [@yourusername](https://github.com/yourusername)
+- Email: amaan.mansuri@nyu.edu
+- LinkedIn: [[Amaan Mansuri](https://www.linkedin.com/in/amaanmansuri/)]
+- GitHub: [@Amaan165](https://github.com/Amaan165)
 
 ---
 
 ## ⚡ Quick Links
 
-- [📄 Complete Technical Report](UNDERWATER_FISH_DETECTION_PROJECT_REPORT.md)
+- [📄 Complete Technical Report](FISH_DETECTION_PROJECT_REPORT.md)
 - [📖 Dataset Labeling Guide](DATASET_LABELING_GUIDE.md)
 - [🔧 Ultralytics Docs](https://docs.ultralytics.com)
-- [💬 Issues](https://github.com/yourusername/underwater-fish-detection/issues)
 
 ---
 
