@@ -6,14 +6,20 @@ Supports 3 output modes:
 3. Live video labeling with predictions
 
 Usage:
-    # Mode 1: Standard labels
-    python label_dataset_with_ensemble.py --mode standard --input-dir ./unlabeled_images --output-dir ./labeled_dataset
+    # Mode 1: Standard labels with specific models
+    python label_dataset_with_ensemble.py --mode standard \
+        --models model1.pt model2.pt model3.pt \
+        --input-dir ./unlabeled_images --output-dir ./labeled_dataset
     
-    # Mode 2: Visualized bounding boxes
-    python label_dataset_with_ensemble.py --mode visualized --input-dir ./images --output-dir ./visualized_output
+    # Mode 2: Visualized bounding boxes without confidence
+    python label_dataset_with_ensemble.py --mode visualized \
+        --input-dir ./images --output-dir ./visualized_output \
+        --show-conf False
     
-    # Mode 3: Video labeling
-    python label_dataset_with_ensemble.py --mode video --video-path ./underwater_footage.mp4 --output-path ./labeled_video.mp4
+    # Mode 3: Video labeling with custom confidence threshold
+    python label_dataset_with_ensemble.py --mode video \
+        --video-path ./underwater_footage.mp4 --output-path ./labeled_video.mp4 \
+        --conf 0.35 --show-conf True
 """
 
 import argparse
@@ -31,19 +37,27 @@ from datetime import datetime
 class EnsembleLabeler:
     """Ensemble model for high-quality dataset labeling"""
     
-    def __init__(self, model_paths, weights=[0.40, 0.30, 0.15, 0.15], 
+    def __init__(self, model_paths, weights=None, 
                  conf_threshold=0.25, iou_threshold=0.45):
         """
         Initialize ensemble labeler
         
         Args:
             model_paths: List of paths to model weights
-            weights: Weight for each model in ensemble
+            weights: Weight for each model in ensemble (None for equal weights)
             conf_threshold: Confidence threshold for predictions
             iou_threshold: IoU threshold for NMS
         """
         self.models = [YOLO(path) for path in model_paths]
-        self.weights = np.array(weights)
+        
+        # Set equal weights if not provided
+        if weights is None:
+            self.weights = np.ones(len(model_paths)) / len(model_paths)
+        else:
+            self.weights = np.array(weights)
+            # Normalize weights to sum to 1
+            self.weights = self.weights / self.weights.sum()
+        
         self.conf_threshold = conf_threshold
         self.iou_threshold = iou_threshold
         
@@ -359,7 +373,7 @@ def label_with_visualization(labeler, input_dir, output_dir, show_confidence=Tru
     print(f"\n✅ Visualization complete! Output: {output_path}")
 
 
-def label_video_live(labeler, video_path, output_path, fps=None, show_fps=True):
+def label_video_live(labeler, video_path, output_path, fps=None, show_fps=True, show_confidence=True):
     """
     Mode 3: Label video with live predictions
     
@@ -368,6 +382,7 @@ def label_video_live(labeler, video_path, output_path, fps=None, show_fps=True):
         output_path: Output video file
         fps: Output FPS (None = same as input)
         show_fps: Show FPS counter on video
+        show_confidence: Show confidence scores on labels
     """
     print("\n=== MODE 3: Live Video Labeling ===")
     
@@ -426,7 +441,11 @@ def label_video_live(labeler, video_path, output_path, fps=None, show_fps=True):
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
             
             # Draw label
-            text = f"{label} {conf:.2f}"
+            if show_confidence:
+                text = f"{label} {conf:.2f}"
+            else:
+                text = label
+                
             (text_width, text_height), _ = cv2.getTextSize(
                 text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2
             )
@@ -460,13 +479,30 @@ def label_video_live(labeler, video_path, output_path, fps=None, show_fps=True):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Label dataset with ensemble model")
+    parser = argparse.ArgumentParser(
+        description="Label dataset with ensemble model (up to 5 models)",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Standard mode with 3 models
+  python %(prog)s --mode standard --models model1.pt model2.pt model3.pt \\
+      --input-dir ./images --output-dir ./labeled
+
+  # Visualized mode without confidence scores
+  python %(prog)s --mode visualized --input-dir ./images --output-dir ./viz \\
+      --show-conf False
+
+  # Video mode with custom confidence threshold
+  python %(prog)s --mode video --video-path input.mp4 --output-path output.mp4 \\
+      --conf 0.35 --show-conf True
+        """
+    )
     
     parser.add_argument('--mode', type=str, required=True,
                        choices=['standard', 'visualized', 'video'],
                        help='Labeling mode')
     
-    # Model configuration
+    # Model configuration - Select up to 5 models
     parser.add_argument('--models', type=str, nargs='+',
                        default=[
                            'runs/detect/extreme_stable_v1/weights/best.pt',
@@ -474,14 +510,14 @@ def main():
                            'runs/detect/best.pt_s_cosine_finetune_v1/weights/best.pt',
                            'runs/detect/fish_s_s_cosine_ultra_v1/weights/best.pt'
                        ],
-                       help='Model weights paths')
+                       help='Model weights paths (up to 5 models)')
     parser.add_argument('--weights', type=float, nargs='+',
-                       default=[0.40, 0.30, 0.15, 0.15],
-                       help='Ensemble weights')
+                       default=None,
+                       help='Ensemble weights (must match number of models). If not provided, equal weights are used.')
     parser.add_argument('--conf', type=float, default=0.25,
-                       help='Confidence threshold')
+                       help='Minimum confidence threshold for predictions (default: 0.25)')
     parser.add_argument('--iou', type=float, default=0.45,
-                       help='IoU threshold')
+                       help='IoU threshold for NMS (default: 0.45)')
     
     # Input/Output paths
     parser.add_argument('--input-dir', type=str, help='Input directory for images')
@@ -492,22 +528,45 @@ def main():
     # Additional options
     parser.add_argument('--no-tta', action='store_true',
                        help='Disable test-time augmentation')
-    parser.add_argument('--no-confidence', action='store_true',
-                       help='Hide confidence scores in visualization')
+    parser.add_argument('--show-conf', type=lambda x: str(x).lower() in ['true', '1', 'yes'], 
+                       default=True,
+                       help='Show confidence scores on labels (default: True). Use: --show-conf True/False')
     parser.add_argument('--fps', type=int, default=None,
-                       help='Output video FPS')
+                       help='Output video FPS (default: same as input)')
     
     args = parser.parse_args()
     
+    # Validate model count
+    if len(args.models) > 5:
+        print(f"Error: Maximum 5 models allowed. You provided {len(args.models)} models.")
+        return
+    
+    # Validate weights if provided
+    if args.weights is not None:
+        if len(args.weights) != len(args.models):
+            print(f"Error: Number of weights ({len(args.weights)}) must match number of models ({len(args.models)})")
+            return
+    
     # Initialize ensemble labeler
-    print("Loading ensemble models...")
+    print(f"\nLoading {len(args.models)} ensemble model(s)...")
+    for i, model_path in enumerate(args.models):
+        print(f"  [{i+1}] {model_path}")
+    
+    if args.weights:
+        print(f"Using custom weights: {args.weights}")
+    else:
+        print(f"Using equal weights for all models")
+    
+    print(f"Confidence threshold: {args.conf}")
+    print(f"Show confidence: {args.show_conf}")
+    
     labeler = EnsembleLabeler(
         model_paths=args.models,
         weights=args.weights,
         conf_threshold=args.conf,
         iou_threshold=args.iou
     )
-    print("✓ Models loaded successfully")
+    print("✓ Models loaded successfully\n")
     
     # Run appropriate mode
     if args.mode == 'standard':
@@ -521,14 +580,14 @@ def main():
             print("Error: --input-dir and --output-dir required for visualized mode")
             return
         label_with_visualization(labeler, args.input_dir, args.output_dir,
-                                show_confidence=not args.no_confidence)
+                                show_confidence=args.show_conf)
     
     elif args.mode == 'video':
         if not args.video_path or not args.output_path:
             print("Error: --video-path and --output-path required for video mode")
             return
         label_video_live(labeler, args.video_path, args.output_path, 
-                        fps=args.fps, show_fps=True)
+                        fps=args.fps, show_fps=True, show_confidence=args.show_conf)
 
 
 if __name__ == "__main__":
