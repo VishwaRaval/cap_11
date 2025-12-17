@@ -577,14 +577,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-## 📞 Contact
-
-For questions or collaborations:
-- Email: amaan.mansuri@nyu.edu
-- LinkedIn: [[Amaan Mansuri](https://www.linkedin.com/in/amaanmansuri/)]
-- GitHub: [@Amaan165](https://github.com/Amaan165)
-
----
 
 ## ⚡ Quick Links
 
